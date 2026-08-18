@@ -180,6 +180,9 @@ export const CopyrightPortal: React.FC<CopyrightPortalProps> = ({ claims, onRefr
           <p className="text-sm text-[#6A655C] leading-relaxed">
             Every time AI uses books, music, information, code, or art, a payment is created that goes to this pool. Claim your copyright with proof, link your Stripe Connect bank account, and receive real-time micro-royalties.
           </p>
+          <div className="text-[11px] font-mono text-[#8C857B] bg-[#FAF8F5] px-2.5 py-1 rounded-md border border-[#E5E0D8] inline-block">
+            ℹ️ <strong>Note:</strong> All dollar figures and creator pool balances are <strong>sample amounts (not real, for display & testing purposes)</strong>.
+          </div>
         </div>
 
         {/* Action Button */}
@@ -197,19 +200,25 @@ export const CopyrightPortal: React.FC<CopyrightPortalProps> = ({ claims, onRefr
       {/* Pool Financial Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="rounded-xl border border-[#E5E0D8] bg-[#FFFFFF] p-4 shadow-2xs">
-          <div className="text-xs font-mono uppercase text-[#5A5A40] mb-1 font-semibold">AVAILABLE POOL BALANCE</div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-mono uppercase text-[#5A5A40] font-semibold">AVAILABLE POOL BALANCE</span>
+            <span className="text-[10px] text-[#8C857B] font-mono">Sample</span>
+          </div>
           <div className="text-2xl font-bold text-[#2D2926]">
             ${totalPoolBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div className="text-[11px] text-[#6A655C] mt-1">Ready for instant Stripe Connect bank payouts</div>
+          <div className="text-[11px] text-[#6A655C] mt-1">Sample amount (not real, testing only)</div>
         </div>
 
         <div className="rounded-xl border border-[#E5E0D8] bg-[#FFFFFF] p-4 shadow-2xs">
-          <div className="text-xs font-mono uppercase text-[#D67D5C] mb-1 font-semibold">HISTORIC ROYALTIES PAID</div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-mono uppercase text-[#D67D5C] font-semibold">HISTORIC ROYALTIES PAID</span>
+            <span className="text-[10px] text-[#8C857B] font-mono">Sample</span>
+          </div>
           <div className="text-2xl font-bold text-[#D67D5C]">
             ${(totalPaidOut + 128450).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div className="text-[11px] text-[#6A655C] mt-1">Distributed to coders, authors, and musicians</div>
+          <div className="text-[11px] text-[#6A655C] mt-1">Simulated test distribution total</div>
         </div>
 
         <div className="rounded-xl border border-[#E5E0D8] bg-[#FFFFFF] p-4 shadow-2xs">

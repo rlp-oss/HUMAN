@@ -73,10 +73,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 font-mono">
-              <span className="text-[#6A655C]">Streamed to Creators:</span>
+            <div className="flex items-center gap-1.5 font-mono" title="Sample amount — not real (for display and testing purposes)">
+              <span className="text-[#6A655C]">Streamed (Simulated):</span>
               <span className="font-bold text-[#D67D5C] bg-[#FAF0EC] px-2 py-0.5 rounded border border-[#EECDBC]">
                 ${totalStreamedUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+              <span className="hidden xl:inline text-[9.5px] text-[#8C857B] font-sans italic">
+                *Sample amount (not real, testing only)
               </span>
             </div>
 

@@ -220,6 +220,9 @@ export const SynthesisSimulator: React.FC<SynthesisSimulatorProps> = ({
           <p className="text-sm text-[#6A655C] leading-relaxed">
             Test the live H.U.M.A.N. covenant: Every time Gemini synthesizes code, audio, or creative assets, the engine analyzes attributed packages and streams micro-royalties directly into the creator’s Stripe Connect account.
           </p>
+          <div className="text-[11px] font-mono text-[#8C857B] bg-[#FAF8F5] px-2.5 py-1 rounded-md border border-[#E5E0D8] inline-block">
+            ⚠️ <strong>Notice:</strong> All dollar figures and micro-royalty balances displayed in this simulator are <strong>sample amounts for display and testing purposes only</strong>.
+          </div>
         </div>
 
         <div className="flex items-center gap-2 self-start md:self-center shrink-0">
@@ -364,9 +367,12 @@ export const SynthesisSimulator: React.FC<SynthesisSimulatorProps> = ({
         <div className="lg:col-span-5 space-y-4">
           <div className="rounded-2xl border border-[#E5E0D8] bg-[#FFFFFF] p-5 space-y-4 shadow-2xs">
             <div className="flex items-center justify-between border-b border-[#E5E0D8] pb-2">
-              <div className="flex items-center gap-2 text-xs font-mono uppercase text-[#5A5A40] font-bold">
-                <span className="h-2 w-2 rounded-full bg-[#5A5A40] animate-ping inline-block"></span>
-                <span>Live Micro-Patronage Feed</span>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2 text-xs font-mono uppercase text-[#5A5A40] font-bold">
+                  <span className="h-2 w-2 rounded-full bg-[#5A5A40] animate-ping inline-block"></span>
+                  <span>Live Micro-Patronage Feed</span>
+                </div>
+                <span className="text-[10px] text-[#8C857B] font-mono">Sample amounts — not real (testing)</span>
               </div>
               <button
                 onClick={() => setShowExportModal(true)}

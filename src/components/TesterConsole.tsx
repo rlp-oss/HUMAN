@@ -257,7 +257,10 @@ export const TesterConsole: React.FC<TesterConsoleProps> = ({
                 <th className="px-4 py-3">Role</th>
                 <th className="px-4 py-3">App Access List</th>
                 <th className="px-4 py-3">Stripe Status</th>
-                <th className="px-4 py-3">Royalties Streamed</th>
+                <th className="px-4 py-3">
+                  <span className="block">Royalties (Sample)</span>
+                  <span className="text-[9px] text-[#8C857B] font-sans lowercase font-normal">*testing only</span>
+                </th>
                 <th className="px-4 py-3 text-right">Status Controls</th>
               </tr>
             </thead>
@@ -598,8 +601,11 @@ export const TesterConsole: React.FC<TesterConsoleProps> = ({
                 <span className="text-[#D67D5C] font-mono text-[11px]">{selectedTester.stripe_account_id}</span>
               </div>
               <div className="flex justify-between items-center text-xs font-mono">
-                <span className="text-[#6A655C]">ROYALTIES ACCUMULATED</span>
-                <span className="text-[#2D2926] font-bold text-sm">${selectedTester.total_royalties_received.toFixed(2)}</span>
+                <span className="text-[#6A655C]">ROYALTIES (SAMPLE)</span>
+                <span className="text-[#2D2926] font-bold text-sm">
+                  ${selectedTester.total_royalties_received.toFixed(2)}
+                  <span className="text-[10px] text-[#8C857B] font-normal ml-1">(test data)</span>
+                </span>
               </div>
               <div className="flex justify-between items-center text-xs font-mono">
                 <span className="text-[#6A655C]">JOINED DATE</span>
