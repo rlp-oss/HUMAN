@@ -1,0 +1,7 @@
+{
+  "name": "H.U.M.A.N. - Ethical AI Builder & Tester Console",
+  "description": "The Universal Attribution & Micro-Royalty Network for Coders, Authors, Musicians, and Artists with Beta Tester CRM and Stripe Connect micro-patronage.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
