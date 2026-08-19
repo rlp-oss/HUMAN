@@ -1,0 +1,108 @@
+{
+  "entities": {
+    "Tester": {
+      "title": "Tester",
+      "description": "Beta tester registered in the ethical AI testing console",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Tester ID" },
+        "name": { "type": "string", "maxLength": 100, "description": "Tester full name" },
+        "email": { "type": "string", "format": "email", "maxLength": 150, "description": "Tester email address" },
+        "app_access_list": { "type": "array", "description": "List of authorized apps (ShareShop Pro, Lyria Studio, ReForgeOS, etc.)" },
+        "current_subscription_status": { "type": "string", "description": "Current Stripe status (Stripe Sandbox, Active Patron, etc.)" },
+        "stripeSandboxAccountId": { "type": "string", "description": "Stripe sandbox account ID" },
+        "testBalanceCents": { "type": "number", "description": "Sandbox test balance in cents" },
+        "totalAccumulatedRoyaltiesSample": { "type": "number", "description": "Accumulated sample royalty balance" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "description": "Last update timestamp" }
+      },
+      "required": ["name", "email", "app_access_list", "current_subscription_status"]
+    },
+    "Feedback": {
+      "title": "Feedback",
+      "description": "Tester bug report or feedback submission categorized by app",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Feedback ID" },
+        "testerName": { "type": "string", "maxLength": 100 },
+        "testerEmail": { "type": "string", "format": "email" },
+        "appName": { "type": "string", "maxLength": 80 },
+        "rating": { "type": "number" },
+        "feedback": { "type": "string", "maxLength": 2000 },
+        "category": { "type": "string", "enum": ["bug", "feature", "praise", "general"] },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["testerName", "appName", "feedback"]
+    },
+    "Broadcast": {
+      "title": "Broadcast",
+      "description": "Cohort announcement sent to all testers assigned to a specific application",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Broadcast ID" },
+        "appTarget": { "type": "string", "maxLength": 80 },
+        "subject": { "type": "string", "maxLength": 200 },
+        "bodyText": { "type": "string", "maxLength": 5000 },
+        "recipientCount": { "type": "number" },
+        "sentAt": { "type": "string" }
+      },
+      "required": ["appTarget", "subject", "bodyText"]
+    },
+    "CreatorClaim": {
+      "title": "CreatorClaim",
+      "description": "Copyright and micro-royalty attribution claim registered by a human creator",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string", "maxLength": 150 },
+        "creatorName": { "type": "string", "maxLength": 100 },
+        "assetType": { "type": "string" },
+        "attributionShareBps": { "type": "number" },
+        "verified": { "type": "boolean" },
+        "confidenceScore": { "type": "number" },
+        "stripeAccountId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "creatorName", "assetType"]
+    },
+    "AppBadge": {
+      "title": "AppBadge",
+      "description": "C2PA manifest link and badge status configuration for an ethical AI app",
+      "type": "object",
+      "properties": {
+        "appId": { "type": "string" },
+        "developerName": { "type": "string" },
+        "isLinked": { "type": "boolean" },
+        "isActivated": { "type": "boolean" },
+        "royaltyBalance": { "type": "number" },
+        "c2paManifestHash": { "type": "string" },
+        "ftAuditId": { "type": "string" },
+        "storyIpAssetId": { "type": "string" },
+        "theme": { "type": "string" }
+      },
+      "required": ["appId", "isLinked", "isActivated"]
+    }
+  },
+  "firestore": {
+    "/testers/{testerId}": {
+      "schema": { "$ref": "#/entities/Tester" },
+      "description": "Collection of all registered beta testers"
+    },
+    "/feedbacks/{feedbackId}": {
+      "schema": { "$ref": "#/entities/Feedback" },
+      "description": "Tester feedback and bug reports"
+    },
+    "/broadcasts/{broadcastId}": {
+      "schema": { "$ref": "#/entities/Broadcast" },
+      "description": "Sent broadcast messages to cohorts"
+    },
+    "/creator_claims/{claimId}": {
+      "schema": { "$ref": "#/entities/CreatorClaim" },
+      "description": "Registered artist and coder copyright claims"
+    },
+    "/app_badges/{badgeId}": {
+      "schema": { "$ref": "#/entities/AppBadge" },
+      "description": "App badge configurations and C2PA manifest records"
+    }
+  }
+}

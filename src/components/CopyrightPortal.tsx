@@ -24,9 +24,10 @@ import { ClaimService } from '../services/api';
 interface CopyrightPortalProps {
   claims: CopyrightClaim[];
   onRefresh: () => void;
+  onNavigateToPayouts?: () => void;
 }
 
-export const CopyrightPortal: React.FC<CopyrightPortalProps> = ({ claims, onRefresh }) => {
+export const CopyrightPortal: React.FC<CopyrightPortalProps> = ({ claims, onRefresh, onNavigateToPayouts }) => {
   const [isAddingClaim, setIsAddingClaim] = useState(false);
   const [title, setTitle] = useState('');
   const [creatorName, setCreatorName] = useState('');
@@ -194,6 +195,15 @@ export const CopyrightPortal: React.FC<CopyrightPortalProps> = ({ claims, onRefr
             <Plus className="w-4 h-4 text-white" />
             <span>Claim Your Copyright with Proof</span>
           </button>
+          {onNavigateToPayouts && (
+            <button
+              onClick={onNavigateToPayouts}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FAF8F5] hover:bg-[#F2ECE4] border border-[#DCD5CA] text-[#5A5A40] hover:text-[#2D2926] font-semibold text-xs shadow-2xs transition-all active:scale-95 cursor-pointer"
+            >
+              <Landmark className="w-4 h-4 text-[#5A5A40]" />
+              <span>View Stripe Payout Transparency Dashboard</span>
+            </button>
+          )}
         </div>
       </div>
 

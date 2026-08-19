@@ -9,13 +9,15 @@ import {
   DollarSign, 
   RefreshCw,
   ExternalLink,
-  Lock
+  Lock,
+  Landmark
 } from 'lucide-react';
 import { HumanLogo } from './HumanLogo';
 
 export type ActiveTab = 
   | 'testers' 
   | 'claims' 
+  | 'payouts'
   | 'badge' 
   | 'synthesizer' 
   | 'broadcast' 
@@ -41,6 +43,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const tabs = [
     { id: 'testers' as ActiveTab, label: 'Tester CRM & Onboarding', icon: Users, badge: '5 Active' },
     { id: 'claims' as ActiveTab, label: 'Copyright Claims & Pool', icon: ShieldCheck, badge: 'Pool Live' },
+    { id: 'payouts' as ActiveTab, label: 'Creator Payouts & Stripe', icon: Landmark, badge: 'Direct Connect' },
     { 
       id: 'badge' as ActiveTab, 
       label: 'Ethical Badge & Micro-QR', 

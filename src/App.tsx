@@ -8,6 +8,7 @@ import { BroadcastConsole } from './components/BroadcastConsole';
 import { FeedbackPortal } from './components/FeedbackPortal';
 import { SynthesisSimulator } from './components/SynthesisSimulator';
 import { StripeSandboxModal } from './components/StripeSandboxModal';
+import { CreatorPayoutDashboard } from './components/CreatorPayoutDashboard';
 import { 
   Tester, 
   CopyrightClaim, 
@@ -24,6 +25,7 @@ import {
   BroadcastService, 
   SynthesisService 
 } from './services/api';
+import { testFirestoreConnection } from './lib/firebase';
 import { 
   ShieldCheck, 
   Award, 
@@ -34,7 +36,8 @@ import {
   Cpu, 
   DollarSign, 
   Sparkles,
-  Layers
+  Layers,
+  Database
 } from 'lucide-react';
 import { HumanLogo } from './components/HumanLogo';
 
@@ -45,6 +48,7 @@ export default function App() {
   const [feedbackList, setFeedbackList] = useState<FeedbackItem[]>([]);
   const [broadcasts, setBroadcasts] = useState<BroadcastMessage[]>([]);
   const [royaltyEvents, setRoyaltyEvents] = useState<RoyaltyStreamEvent[]>([]);
+  const [firestoreConnected, setFirestoreConnected] = useState<boolean | null>(null);
   const [summary, setSummary] = useState<RoyaltyPoolSummary>({
     total_streamed_usd: 128450.00,
     total_active_creators: 1420,
@@ -65,6 +69,8 @@ export default function App() {
 
   const loadAllData = useCallback(async () => {
     try {
+      testFirestoreConnection().then(conn => setFirestoreConnected(conn));
+
       const [
         fetchedTesters,
         fetchedClaims,
@@ -146,6 +152,16 @@ export default function App() {
               <CopyrightPortal
                 claims={claims}
                 onRefresh={loadAllData}
+                onNavigateToPayouts={() => setActiveTab('payouts')}
+              />
+            )}
+
+            {activeTab === 'payouts' && (
+              <CreatorPayoutDashboard
+                claims={claims}
+                royaltyEvents={royaltyEvents}
+                onRefresh={loadAllData}
+                onOpenStripeSandboxModal={() => setIsStripeModalOpen(true)}
               />
             )}
 
@@ -195,7 +211,12 @@ export default function App() {
             </span>
           </div>
 
-          <div className="flex items-center gap-4 text-[#5A5A40]">
+          <div className="flex items-center gap-4 text-[#5A5A40] flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] bg-[#EFE9DF] border border-[#DCD3C6]">
+              <Database className="w-3 h-3 text-[#5A5A40]" />
+              Firestore: {firestoreConnected === true ? <span className="text-[#3D6E50] font-semibold">Active & Synced</span> : firestoreConnected === false ? <span className="text-[#6A655C]">Local Cache / Ready</span> : <span className="text-[#6A655C]">Connecting...</span>}
+            </span>
+            <span>•</span>
             <span>Powered by <strong className="text-[#2D2926]">ReForgeOS</strong></span>
             <span>•</span>
             <span className="text-[#5A5A40]">Strict OSPO 0-Copyleft Sandbox</span>

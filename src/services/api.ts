@@ -1,5 +1,14 @@
 import axios from 'axios';
 import { 
+  collection, 
+  doc, 
+  getDocs, 
+  setDoc, 
+  deleteDoc, 
+  updateDoc 
+} from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { 
   Tester, 
   CopyrightClaim, 
   FeedbackItem, 
@@ -60,6 +69,18 @@ export const apiClient = axios.create({
 
 export const TesterService = {
   async getTesters(): Promise<Tester[]> {
+    try {
+      if (db) {
+        const snap = await getDocs(collection(db, 'testers'));
+        if (!snap.empty) {
+          const remoteTesters = snap.docs.map(d => ({ ...d.data(), id: d.id } as Tester));
+          saveToStorage(STORAGE_KEYS.TESTERS, remoteTesters);
+          return remoteTesters;
+        }
+      }
+    } catch (err) {
+      console.warn('Firestore fetch testers fallback to local storage:', err);
+    }
     return loadFromStorage<Tester[]>(STORAGE_KEYS.TESTERS, INITIAL_TESTERS);
   },
 
@@ -82,6 +103,16 @@ export const TesterService = {
 
     testers.unshift(created);
     saveToStorage(STORAGE_KEYS.TESTERS, testers);
+
+    // Sync to Firestore
+    try {
+      if (db) {
+        await setDoc(doc(db, 'testers', id), created);
+      }
+    } catch (err) {
+      console.warn('Firestore save tester sync error:', err);
+    }
+
     return created;
   },
 
@@ -92,6 +123,15 @@ export const TesterService = {
     
     testers[index] = { ...testers[index], ...updates };
     saveToStorage(STORAGE_KEYS.TESTERS, testers);
+
+    try {
+      if (db) {
+        await updateDoc(doc(db, 'testers', id), updates as any);
+      }
+    } catch (err) {
+      console.warn('Firestore update tester error:', err);
+    }
+
     return testers[index];
   },
 
@@ -99,6 +139,15 @@ export const TesterService = {
     let testers = loadFromStorage<Tester[]>(STORAGE_KEYS.TESTERS, INITIAL_TESTERS);
     testers = testers.filter(t => t.id !== id);
     saveToStorage(STORAGE_KEYS.TESTERS, testers);
+
+    try {
+      if (db) {
+        await deleteDoc(doc(db, 'testers', id));
+      }
+    } catch (err) {
+      console.warn('Firestore delete tester error:', err);
+    }
+
     return true;
   },
 
@@ -126,6 +175,15 @@ export const TesterService = {
         tester.current_subscription_status = 'Stripe Connect Active';
         tester.last_active = 'Just updated access';
         saveToStorage(STORAGE_KEYS.TESTERS, testers);
+
+        if (db) {
+          await updateDoc(doc(db, 'testers', testerId), {
+            app_access_list: tester.app_access_list,
+            license_keys: tester.license_keys,
+            current_subscription_status: tester.current_subscription_status,
+            last_active: tester.last_active,
+          }).catch(() => {});
+        }
       }
 
       return res.data;
@@ -159,6 +217,14 @@ export const TesterService = {
         tester.stripe_account_id = res.data.account.stripeSandboxAccountId;
         tester.last_active = 'Sandbox reset just now';
         saveToStorage(STORAGE_KEYS.TESTERS, testers);
+
+        if (db) {
+          await updateDoc(doc(db, 'testers', testerId), {
+            current_subscription_status: 'Stripe Sandbox',
+            stripe_account_id: res.data.account.stripeSandboxAccountId,
+            last_active: tester.last_active,
+          }).catch(() => {});
+        }
       }
 
       return res.data;
@@ -175,6 +241,18 @@ export const TesterService = {
 
 export const ClaimService = {
   async getClaims(): Promise<CopyrightClaim[]> {
+    try {
+      if (db) {
+        const snap = await getDocs(collection(db, 'creator_claims'));
+        if (!snap.empty) {
+          const remote = snap.docs.map(d => ({ ...d.data(), id: d.id } as CopyrightClaim));
+          saveToStorage(STORAGE_KEYS.CLAIMS, remote);
+          return remote;
+        }
+      }
+    } catch (err) {
+      console.warn('Firestore fetch claims fallback:', err);
+    }
     return loadFromStorage<CopyrightClaim[]>(STORAGE_KEYS.CLAIMS, INITIAL_CLAIMS);
   },
 
@@ -191,14 +269,24 @@ export const ClaimService = {
 
   async addClaim(newClaim: Omit<CopyrightClaim, 'id' | 'created_at' | 'total_payouts_claimed_usd'>): Promise<CopyrightClaim> {
     const claims = loadFromStorage<CopyrightClaim[]>(STORAGE_KEYS.CLAIMS, INITIAL_CLAIMS);
+    const id = `clm_${Date.now().toString(36)}`;
     const created: CopyrightClaim = {
       ...newClaim,
-      id: `clm_${Date.now().toString(36)}`,
+      id,
       created_at: new Date().toISOString(),
       total_payouts_claimed_usd: 0,
     };
     claims.unshift(created);
     saveToStorage(STORAGE_KEYS.CLAIMS, claims);
+
+    try {
+      if (db) {
+        await setDoc(doc(db, 'creator_claims', id), created);
+      }
+    } catch (err) {
+      console.warn('Firestore save claim error:', err);
+    }
+
     return created;
   },
 
@@ -210,25 +298,59 @@ export const ClaimService = {
     claim.payout_balance_usd = Math.max(0, claim.payout_balance_usd - amountUsd);
     claim.total_payouts_claimed_usd += amountUsd;
     saveToStorage(STORAGE_KEYS.CLAIMS, claims);
+
+    try {
+      if (db) {
+        await updateDoc(doc(db, 'creator_claims', claimId), {
+          payout_balance_usd: claim.payout_balance_usd,
+          total_payouts_claimed_usd: claim.total_payouts_claimed_usd,
+        });
+      }
+    } catch (err) {
+      console.warn('Firestore update claim payout error:', err);
+    }
+
     return true;
   },
 };
 
 export const FeedbackService = {
   async getFeedback(): Promise<FeedbackItem[]> {
+    try {
+      if (db) {
+        const snap = await getDocs(collection(db, 'feedbacks'));
+        if (!snap.empty) {
+          const remote = snap.docs.map(d => ({ ...d.data(), id: d.id } as FeedbackItem));
+          saveToStorage(STORAGE_KEYS.FEEDBACK, remote);
+          return remote;
+        }
+      }
+    } catch (err) {
+      console.warn('Firestore fetch feedback fallback:', err);
+    }
     return loadFromStorage<FeedbackItem[]>(STORAGE_KEYS.FEEDBACK, INITIAL_FEEDBACK);
   },
 
   async addFeedback(item: Omit<FeedbackItem, 'id' | 'created_at' | 'status'>): Promise<FeedbackItem> {
     const list = loadFromStorage<FeedbackItem[]>(STORAGE_KEYS.FEEDBACK, INITIAL_FEEDBACK);
+    const id = `fb_${Date.now().toString(36)}`;
     const created: FeedbackItem = {
       ...item,
-      id: `fb_${Date.now().toString(36)}`,
+      id,
       created_at: new Date().toISOString(),
       status: 'New',
     };
     list.unshift(created);
     saveToStorage(STORAGE_KEYS.FEEDBACK, list);
+
+    try {
+      if (db) {
+        await setDoc(doc(db, 'feedbacks', id), created);
+      }
+    } catch (err) {
+      console.warn('Firestore save feedback error:', err);
+    }
+
     return created;
   },
 
@@ -238,6 +360,15 @@ export const FeedbackService = {
     if (!item) throw new Error('Feedback not found');
     item.status = status;
     saveToStorage(STORAGE_KEYS.FEEDBACK, list);
+
+    try {
+      if (db) {
+        await updateDoc(doc(db, 'feedbacks', id), { status });
+      }
+    } catch (err) {
+      console.warn('Firestore update feedback status error:', err);
+    }
+
     return item;
   },
 
@@ -255,12 +386,36 @@ export const FeedbackService = {
       item.status = 'In Review';
     }
     saveToStorage(STORAGE_KEYS.FEEDBACK, list);
+
+    try {
+      if (db) {
+        await updateDoc(doc(db, 'feedbacks', id), { 
+          reply_history: item.reply_history,
+          status: item.status
+        });
+      }
+    } catch (err) {
+      console.warn('Firestore add reply error:', err);
+    }
+
     return item;
   },
 };
 
 export const BroadcastService = {
   async getBroadcasts(): Promise<BroadcastMessage[]> {
+    try {
+      if (db) {
+        const snap = await getDocs(collection(db, 'broadcasts'));
+        if (!snap.empty) {
+          const remote = snap.docs.map(d => ({ ...d.data(), id: d.id } as BroadcastMessage));
+          saveToStorage(STORAGE_KEYS.BROADCASTS, remote);
+          return remote;
+        }
+      }
+    } catch (err) {
+      console.warn('Firestore fetch broadcasts fallback:', err);
+    }
     return loadFromStorage<BroadcastMessage[]>(STORAGE_KEYS.BROADCASTS, INITIAL_BROADCASTS);
   },
 
@@ -288,8 +443,9 @@ export const BroadcastService = {
       ? testers
       : testers.filter(t => t.app_access_list.includes(payload.target_app as AppName));
 
+    const id = `bc_${Date.now().toString(36)}`;
     const created: BroadcastMessage = {
-      id: `bc_${Date.now().toString(36)}`,
+      id,
       subject: payload.subject,
       body_text: payload.body_text,
       target_app: payload.target_app,
@@ -302,6 +458,15 @@ export const BroadcastService = {
 
     broadcasts.unshift(created);
     saveToStorage(STORAGE_KEYS.BROADCASTS, broadcasts);
+
+    try {
+      if (db) {
+        await setDoc(doc(db, 'broadcasts', id), created);
+      }
+    } catch (err) {
+      console.warn('Firestore save broadcast error:', err);
+    }
+
     return created;
   },
 };

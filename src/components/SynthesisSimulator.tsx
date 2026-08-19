@@ -46,6 +46,14 @@ export const SynthesisSimulator: React.FC<SynthesisSimulatorProps> = ({
   const [appFilter, setAppFilter] = useState<string>('All');
   const [downloadToast, setDownloadToast] = useState<string | null>(null);
 
+  const getFilteredEvents = () => {
+    if (appFilter === 'All') return events;
+    return events.filter(e => e.app_source.toLowerCase().includes(appFilter.toLowerCase()));
+  };
+
+  const filteredEvents = getFilteredEvents();
+  const filteredTotalUSD = (filteredEvents.reduce((acc, e) => acc + e.amount_cents, 0) / 100).toFixed(4);
+
   const samplePrompts = [
     'Synthesize an interactive cart checkout with Stripe micro-royalty routing',
     'Compose 4 acoustic guitar chord stems for an ambient intro',
@@ -58,29 +66,30 @@ export const SynthesisSimulator: React.FC<SynthesisSimulatorProps> = ({
     setTimeout(() => setDownloadToast(null), 4000);
   };
 
-  const getFilteredEvents = () => {
-    if (appFilter === 'All') return events;
-    return events.filter(e => e.app_source.toLowerCase().includes(appFilter.toLowerCase()));
+  const handleDownloadCSVDirect = () => {
+    handleDownloadReport('csv');
   };
 
   const handleDownloadReport = (format: 'csv' | 'json') => {
     const targetEvents = getFilteredEvents();
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const totalAmountUSD = (targetEvents.reduce((acc, e) => acc + e.amount_cents, 0) / 100).toFixed(4);
+    const uniqueCreators = new Set(targetEvents.map(e => e.recipient_name)).size;
 
     if (format === 'csv') {
-      // Generate CSV Content
+      // Generate standard CSV Content with UTF-8 BOM for Excel compatibility
       const headers = [
         'Event ID',
-        'Timestamp',
-        'Recipient Name',
-        'Package / Attributed Work',
+        'Timestamp (UTC)',
+        'Creator / Beneficiary Name',
+        'Attributed Work / Package',
         'Application Source',
-        'Amount (USD)',
-        'Amount (Cents)',
-        'Trigger Prompt',
+        'Payout Rate (USD)',
+        'Payout Rate (Cents)',
+        'Synthesis Prompt Context',
         'Stripe Transfer ID',
-        'Audit Hash'
+        'C2PA Audit Hash',
+        'Settlement Status'
       ];
 
       const rows = targetEvents.map(evt => [
@@ -89,23 +98,30 @@ export const SynthesisSimulator: React.FC<SynthesisSimulatorProps> = ({
         `"${evt.recipient_name.replace(/"/g, '""')}"`,
         `"${evt.package_or_work.replace(/"/g, '""')}"`,
         `"${evt.app_source.replace(/"/g, '""')}"`,
-        `"$${(evt.amount_cents / 100).toFixed(4)}"`,
+        `"${(evt.amount_cents / 100).toFixed(4)}"`,
         evt.amount_cents,
         `"${(evt.trigger_prompt || '').replace(/"/g, '""')}"`,
         `"${evt.stripe_transfer_id}"`,
-        `"${evt.audit_hash}"`
+        `"${evt.audit_hash}"`,
+        `"Settled / Micro-Streamed"`
       ]);
 
-      const csvString = [
-        `# H.U.M.A.N. Protocol - Micro-Royalty Ledger Report`,
+      const csvContent = [
+        `# =========================================================================`,
+        `# H.U.M.A.N. Protocol - Creator Micro-Royalty & Attribution Audit Report`,
+        `# =========================================================================`,
         `# Generated At: ${new Date().toISOString()}`,
-        `# Total Filtered Events: ${targetEvents.length}`,
-        `# Total Micro-Royalties Streamed: $${totalAmountUSD}`,
+        `# Filter Scope: ${appFilter}`,
+        `# Total Attributed Events: ${targetEvents.length}`,
+        `# Total Micro-Royalties Streamed: $${totalAmountUSD} USD`,
+        `# Unique Human Creators Benefited: ${uniqueCreators}`,
+        `# Verification Standard: C2PA 2.1 Manifest & Story Protocol IP`,
+        `# =========================================================================`,
         headers.join(','),
         ...rows.map(r => r.join(','))
       ].join('\n');
 
-      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.setAttribute('href', url);
@@ -115,18 +131,19 @@ export const SynthesisSimulator: React.FC<SynthesisSimulatorProps> = ({
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      showToast(`Royalty report exported (${targetEvents.length} events as CSV)!`);
+      showToast(`Exported ${targetEvents.length} royalty events as CSV!`);
     } else {
       // Generate JSON Content
       const reportData = {
         metadata: {
           platform: 'H.U.M.A.N. Protocol',
+          standard: 'C2PA 2.1 & Story Protocol Programmable IP',
           description: 'Micro-Royalty Attribution & Patronage Stream Audit Report',
           generated_at: new Date().toISOString(),
           scope: appFilter,
           total_events_count: targetEvents.length,
           total_streamed_usd: parseFloat(totalAmountUSD),
-          active_creators_count: new Set(targetEvents.map(e => e.recipient_name)).size,
+          active_creators_count: uniqueCreators,
           pool_summary_snapshot: summary
         },
         events: targetEvents
@@ -143,7 +160,7 @@ export const SynthesisSimulator: React.FC<SynthesisSimulatorProps> = ({
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      showToast(`Royalty report exported (${targetEvents.length} events as JSON)!`);
+      showToast(`Exported ${targetEvents.length} royalty events as JSON!`);
     }
 
     setShowExportModal(false);
@@ -194,9 +211,6 @@ export const SynthesisSimulator: React.FC<SynthesisSimulatorProps> = ({
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 3000);
   };
-
-  const filteredEvents = getFilteredEvents();
-  const filteredTotalUSD = (filteredEvents.reduce((acc, e) => acc + e.amount_cents, 0) / 100).toFixed(4);
 
   return (
     <div className="space-y-6 text-[#2D2926]">
@@ -374,13 +388,24 @@ export const SynthesisSimulator: React.FC<SynthesisSimulatorProps> = ({
                 </div>
                 <span className="text-[10px] text-[#8C857B] font-mono">Sample amounts — not real (testing)</span>
               </div>
-              <button
-                onClick={() => setShowExportModal(true)}
-                className="flex items-center gap-1 text-[11px] font-mono text-[#5A5A40] hover:text-[#2D2926] font-semibold transition-colors cursor-pointer"
-              >
-                <Download className="w-3 h-3 text-[#5A5A40]" />
-                <span>Export ({events.length})</span>
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={handleDownloadCSVDirect}
+                  title="Export live royalty ledger as CSV spreadsheet"
+                  className="flex items-center gap-1 px-2 py-1 rounded-md bg-[#FAF8F5] border border-[#DCD5CA] text-[11px] font-mono text-[#5A5A40] hover:text-[#2D2926] hover:bg-[#F2ECE4] font-semibold transition-colors cursor-pointer"
+                >
+                  <FileSpreadsheet className="w-3 h-3 text-[#5A5A40]" />
+                  <span>Export CSV</span>
+                </button>
+                <button
+                  onClick={() => setShowExportModal(true)}
+                  title="Configure report options & filters"
+                  className="flex items-center gap-1 px-2 py-1 rounded-md bg-[#FAF8F5] border border-[#DCD5CA] text-[11px] font-mono text-[#6A655C] hover:text-[#2D2926] hover:bg-[#F2ECE4] font-semibold transition-colors cursor-pointer"
+                >
+                  <Filter className="w-3 h-3 text-[#6A655C]" />
+                  <span>Options</span>
+                </button>
+              </div>
             </div>
 
             <div className="space-y-2.5 max-h-[500px] overflow-y-auto scrollbar-thin">

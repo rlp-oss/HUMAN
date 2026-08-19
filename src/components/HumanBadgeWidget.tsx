@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { HumanLogo } from './HumanLogo';
+import { ComplianceAuditSection } from './ComplianceAuditSection';
 
 interface HumanBadgeWidgetProps {
   isLinked?: boolean;
@@ -1275,6 +1276,17 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {/* Dedicated Compliance Audit Section */}
+          <ComplianceAuditSection
+            appId={appIdInput}
+            developerName={developerName}
+            manifestHash={c2paManifestHash}
+            storyIpAssetId={storyIpAssetId}
+            ftAuditId={ftAuditId}
+            royaltyBalance={royaltyBalance}
+            isBadgeActive={isBadgeFullyActive}
+          />
 
         </div>
       </div>
