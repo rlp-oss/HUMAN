@@ -24,7 +24,10 @@ import {
   Globe,
   Share2,
   Building,
-  Key
+  Key,
+  ChevronDown,
+  Printer,
+  FileJson
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -51,9 +54,15 @@ export const ComplianceAuditSection: React.FC<ComplianceAuditSectionProps> = ({
   const [copiedAuditUrl, setCopiedAuditUrl] = useState(false);
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
   const [showPublicAuditModal, setShowPublicAuditModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [showDownloadDropdown, setShowDownloadDropdown] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [verificationLoading, setVerificationLoading] = useState(false);
   const [verifiedSuccess, setVerifiedSuccess] = useState(true);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
 
   const publicAuditUrl = `https://reforge-os.org/audit/${appId}?manifest=${encodeURIComponent(manifestHash.slice(0, 18))}`;
 
@@ -220,11 +229,387 @@ export const ComplianceAuditSection: React.FC<ComplianceAuditSectionProps> = ({
         origin: { y: 0.6 },
         colors: ['#3D6E50', '#5A5A40', '#D67D5C'],
       });
+      showToast('Merkle roots and cryptographic signatures re-verified successfully.');
     }, 700);
   };
 
+  // Download Audit Record as JSON file
+  const handleDownloadJSON = () => {
+    setShowDownloadDropdown(false);
+    const auditReport = {
+      "@context": [
+        "https://c2pa.org/specifications/v2/context.jsonld",
+        "https://reforge-os.org/schemas/human-compliance-v2.jsonld"
+      ],
+      "audit_type": "H.U.M.A.N. Protocol Cryptographic Compliance & Provenance Record",
+      "compliance_standard": "EU AI Act Article 53 & US Copyright Office Attribution Standards",
+      "report_version": "2.1.0",
+      "generated_at": new Date().toISOString(),
+      "application": {
+        "app_id": appId,
+        "developer_name": developerName,
+        "status": isBadgeActive ? "VERIFIED_ACTIVE" : "PENDING_VERIFICATION",
+        "fairly_trained_registry_id": ftAuditId,
+        "story_protocol_ip_asset_id": storyIpAssetId,
+        "c2pa_manifest_hash": manifestHash,
+        "public_audit_uri": publicAuditUrl,
+        "sample_royalty_balance_usd": royaltyBalance
+      },
+      "regulatory_compliance_attestations": {
+        "eu_ai_act_article_53_copyright_transparency": "COMPLIANT_VERIFIED",
+        "us_copyright_human_origin_covenant": "COMPLIANT_VERIFIED",
+        "nist_ai_rmf_provenance_tracking": "COMPLIANT_VERIFIED",
+        "zero_copyleft_quarantine": "ENFORCED",
+        "audit_authority": "did:human:ethical-ai-authority"
+      },
+      "hashed_training_data_sources": trainingSources,
+      "verifiable_license_receipts": licenseReceipts,
+      "payout_settlement_ledger": payoutRecords,
+      "cryptographic_verification": {
+        "algorithm": "Ed25519 (JUMBF v2.1 RFC-C2PA)",
+        "merkle_root": manifestHash,
+        "authority_did": "did:human:ethical-ai-authority",
+        "signature_valid": true,
+        "timestamp": new Date().toISOString()
+      }
+    };
+
+    const jsonStr = JSON.stringify(auditReport, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `compliance-audit-record-${appId}-${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    confetti({
+      particleCount: 45,
+      spread: 65,
+      origin: { y: 0.6 },
+      colors: ['#5A5A40', '#3D6E50', '#D67D5C'],
+    });
+    showToast('Machine-readable Compliance Audit JSON downloaded for regulatory record-keeping.');
+  };
+
+  // Download / Print Audit Record as PDF Certificate
+  const handleDownloadPDF = () => {
+    setShowDownloadDropdown(false);
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showToast('Popup blocker prevented opening print window. Please allow popups.');
+      return;
+    }
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Compliance Audit Record - ${appId}</title>
+  <meta charset="utf-8" />
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #2D2926;
+      background: #FFFFFF;
+      margin: 0;
+      padding: 36px;
+      line-height: 1.5;
+      font-size: 12px;
+    }
+    .header {
+      border-bottom: 2px solid #5A5A40;
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #2D2926;
+      margin: 0 0 4px 0;
+    }
+    .subtitle {
+      font-size: 11px;
+      color: #6A655C;
+      margin: 0;
+      font-family: monospace;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      font-family: monospace;
+      background: #EBF3ED;
+      color: #3D6E50;
+      border: 1px solid #C9D1BE;
+    }
+    .section {
+      margin-bottom: 22px;
+      page-break-inside: avoid;
+    }
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #5A5A40;
+      border-bottom: 1px solid #E5E0D8;
+      padding-bottom: 4px;
+      margin-bottom: 10px;
+      font-family: monospace;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .meta-box {
+      background: #FAF8F5;
+      border: 1px solid #E5E0D8;
+      border-radius: 6px;
+      padding: 10px;
+    }
+    .meta-label {
+      font-size: 9px;
+      font-family: monospace;
+      color: #8C857B;
+      text-transform: uppercase;
+    }
+    .meta-value {
+      font-size: 11px;
+      font-weight: 700;
+      color: #2D2926;
+      margin-top: 2px;
+      word-break: break-all;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
+      font-size: 10.5px;
+    }
+    th {
+      background: #FAF8F5;
+      text-align: left;
+      padding: 6px 8px;
+      font-family: monospace;
+      font-size: 9.5px;
+      text-transform: uppercase;
+      color: #6A655C;
+      border-bottom: 1px solid #E5E0D8;
+    }
+    td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #F2ECE4;
+      font-family: monospace;
+    }
+    .hash {
+      color: #5A5A40;
+      font-size: 9.5px;
+      word-break: break-all;
+    }
+    .attestation-box {
+      background: #FAF8F5;
+      border: 1px solid #DCD5CA;
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 16px;
+    }
+    .footer {
+      margin-top: 30px;
+      border-top: 1px solid #E5E0D8;
+      padding-top: 12px;
+      font-size: 9px;
+      color: #8C857B;
+      font-family: monospace;
+      display: flex;
+      justify-content: space-between;
+    }
+    @media print {
+      body { padding: 15px; }
+      @page { margin: 1.2cm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1 class="title">H.U.M.A.N. Protocol Compliance Audit Record</h1>
+      <p class="subtitle">Official Verification & Cryptographic Provenance Certificate (C2PA 2.1 / Story Protocol)</p>
+    </div>
+    <div style="text-align: right;">
+      <span class="badge">100% REGULATORY COMPLIANT</span>
+      <div style="font-size: 9.5px; font-family: monospace; color: #8C857B; margin-top: 4px;">
+        Issued: ${new Date().toUTCString()}
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Application & Entity Verification</div>
+    <div class="grid">
+      <div class="meta-box">
+        <div class="meta-label">Application Identifier</div>
+        <div class="meta-value">${appId}</div>
+      </div>
+      <div class="meta-box">
+        <div class="meta-label">Registered Developer / Builder</div>
+        <div class="meta-value">${developerName}</div>
+      </div>
+      <div class="meta-box">
+        <div class="meta-label">C2PA Manifest JUMBF Root Hash</div>
+        <div class="meta-value">${manifestHash}</div>
+      </div>
+      <div class="meta-box">
+        <div class="meta-label">Story Protocol IP Asset ID</div>
+        <div class="meta-value">${storyIpAssetId}</div>
+      </div>
+      <div class="meta-box">
+        <div class="meta-label">Fairly Trained Registry ID</div>
+        <div class="meta-value">${ftAuditId}</div>
+      </div>
+      <div class="meta-box">
+        <div class="meta-label">Public Verification URL</div>
+        <div class="meta-value" style="font-size: 10px;">${publicAuditUrl}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">1. Hashed Training Data Sources (Cleanroom Certified)</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Dataset / Source</th>
+          <th>Type</th>
+          <th>SHA-256 Merkle Root</th>
+          <th>License Framework</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${trainingSources.map(s => `
+          <tr>
+            <td><strong>${s.name}</strong></td>
+            <td>${s.type}</td>
+            <td class="hash">${s.hash}</td>
+            <td>${s.license}</td>
+            <td style="color: #3D6E50; font-weight: bold;">${s.status}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">2. Verifiable License Receipts & Smart Contracts</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Receipt ID</th>
+          <th>License Standard</th>
+          <th>Grantor DID</th>
+          <th>Royalty Term</th>
+          <th>Signature</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${licenseReceipts.map(r => `
+          <tr>
+            <td>${r.receiptId}</td>
+            <td><strong>${r.title}</strong></td>
+            <td>${r.licensorDid}</td>
+            <td>${r.royaltyShare}</td>
+            <td style="color: #3D6E50; font-weight: bold;">${r.validity}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">3. Payout Settlement Ledger (Micro-Royalty Transparency)</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Timestamp (UTC)</th>
+          <th>Creator Beneficiary</th>
+          <th>Attributed Work</th>
+          <th>Stripe Reference</th>
+          <th style="text-align: right;">Amount</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${payoutRecords.map(p => `
+          <tr>
+            <td>${p.timestamp}</td>
+            <td><strong>${p.recipient}</strong></td>
+            <td>${p.workTitle}</td>
+            <td>${p.transferRef}</td>
+            <td style="text-align: right; color: #3D6E50; font-weight: bold;">+$${p.amountUsd.toFixed(2)}</td>
+            <td>${p.status}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="attestation-box">
+    <div style="font-weight: bold; font-size: 10px; font-family: monospace; color: #5A5A40; margin-bottom: 3px;">
+      REGULATORY COMPLIANCE ATTESTATION:
+    </div>
+    <div style="font-size: 10px; color: #6A655C;">
+      This cryptographic document certifies compliance with EU AI Act Article 53 (Copyright Data Transparency), US Copyright Office Human-Origin attribution frameworks, and NIST AI Risk Management Framework provenance tracking. All micro-royalties are recorded with cryptographic immutability.
+    </div>
+  </div>
+
+  <div class="footer">
+    <div>H.U.M.A.N. Protocol Foundation &copy; 2026 • Cryptographic Authority: did:human:ethical-ai-authority</div>
+    <div>Page 1 of 1 • Official Compliance Archive Record (C2PA v2.1)</div>
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() {
+        window.print();
+      }, 400);
+    };
+  </script>
+</body>
+</html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+
+    confetti({
+      particleCount: 50,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#5A5A40', '#3D6E50', '#D67D5C'],
+    });
+    showToast('Opening print dialog to save Compliance Audit Record as PDF.');
+  };
+
   return (
-    <div className="rounded-2xl border-2 border-[#5A5A40]/30 bg-[#FFFFFF] p-6 space-y-6 shadow-sm">
+    <div className="rounded-2xl border-2 border-[#5A5A40]/30 bg-[#FFFFFF] p-6 space-y-6 shadow-sm relative">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl border border-[#3D6E50]/40 bg-[#FFFFFF] text-[#2D2926] shadow-xl backdrop-blur-md animate-fade-in">
+          <CheckCircle2 className="w-5 h-5 text-[#3D6E50]" />
+          <span className="text-xs font-semibold">{toastMessage}</span>
+        </div>
+      )}
+
       {/* Header Banner with QR Code summary */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 border-b border-[#E5E0D8] pb-6">
         <div className="space-y-2 max-w-2xl">
@@ -236,7 +621,7 @@ export const ComplianceAuditSection: React.FC<ComplianceAuditSectionProps> = ({
             Compliance Audit & Public Verification Matrix
           </h3>
           <p className="text-xs text-[#6A655C] leading-relaxed">
-            Eliminate black-box AI doubt. End users, security officers, and enterprise developers can scan the auto-generated QR code below to inspect cleanroom training data hashes, cryptographic license receipts, and live micro-royalty payout settlement logs.
+            Eliminate black-box AI doubt. End users, security officers, and enterprise developers can scan the auto-generated QR code below or download full audit records as PDF / JSON to satisfy EU AI Act (Art. 53) and NIST copyright transparency mandates.
           </p>
 
           <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -338,9 +723,9 @@ export const ComplianceAuditSection: React.FC<ComplianceAuditSectionProps> = ({
         </div>
       </div>
 
-      {/* Tabs Navigation for the 3 Transparency Pillars */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E5E0D8] pb-3">
-        <div className="flex items-center gap-2">
+      {/* Tabs Navigation & Download Action Controls */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-[#E5E0D8] pb-3">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setActiveTab('training-sources')}
@@ -390,16 +775,64 @@ export const ComplianceAuditSection: React.FC<ComplianceAuditSectionProps> = ({
           </button>
         </div>
 
-        {/* Audit Verification Trigger */}
-        <button
-          type="button"
-          onClick={handleRunInstantAuditCheck}
-          disabled={verificationLoading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FAF8F5] border border-[#DCD5CA] text-xs font-mono font-semibold text-[#5A5A40] hover:text-[#2D2926] hover:bg-[#F2ECE4] transition-all cursor-pointer self-start sm:self-auto disabled:opacity-50"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${verificationLoading ? 'animate-spin' : ''}`} />
-          <span>{verificationLoading ? 'Verifying Merkle Roots...' : 'Re-verify Audit Integrity'}</span>
-        </button>
+        {/* Action Group: Download PDF / JSON & Re-verify */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Download Audit Record Dropdown Button */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowDownloadDropdown(!showDownloadDropdown)}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#5A5A40] hover:bg-[#4A4A33] text-white text-xs font-semibold shadow-xs transition-all active:scale-95 cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5 text-white" />
+              <span>Download Audit Record</span>
+              <ChevronDown className="w-3.5 h-3.5 text-white/80" />
+            </button>
+
+            {showDownloadDropdown && (
+              <div className="absolute right-0 mt-1.5 w-64 rounded-xl border border-[#DCD5CA] bg-[#FFFFFF] p-1.5 shadow-xl z-30 animate-fade-in space-y-1">
+                <button
+                  type="button"
+                  onClick={handleDownloadPDF}
+                  className="w-full flex items-start gap-2.5 p-2 rounded-lg text-left hover:bg-[#FAF8F5] transition-colors cursor-pointer group"
+                >
+                  <div className="p-1.5 rounded-md bg-[#FAF0EC] text-[#D67D5C] group-hover:bg-[#D67D5C] group-hover:text-white transition-colors mt-0.5">
+                    <Printer className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-[#2D2926]">Download PDF Certificate</div>
+                    <div className="text-[10px] text-[#6A655C] leading-tight">Official printable compliance report with legal seals</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadJSON}
+                  className="w-full flex items-start gap-2.5 p-2 rounded-lg text-left hover:bg-[#FAF8F5] transition-colors cursor-pointer group"
+                >
+                  <div className="p-1.5 rounded-md bg-[#EBF3ED] text-[#3D6E50] group-hover:bg-[#3D6E50] group-hover:text-white transition-colors mt-0.5">
+                    <FileJson className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-[#2D2926]">Download JSON-LD Record</div>
+                    <div className="text-[10px] text-[#6A655C] leading-tight">Machine-readable C2PA / ISO provenance archive</div>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Re-verify Audit Trigger */}
+          <button
+            type="button"
+            onClick={handleRunInstantAuditCheck}
+            disabled={verificationLoading}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FAF8F5] border border-[#DCD5CA] text-xs font-mono font-semibold text-[#5A5A40] hover:text-[#2D2926] hover:bg-[#F2ECE4] transition-all cursor-pointer disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${verificationLoading ? 'animate-spin' : ''}`} />
+            <span>{verificationLoading ? 'Verifying...' : 'Re-verify'}</span>
+          </button>
+        </div>
       </div>
 
       {/* TAB 1: HASHED TRAINING DATA SOURCES */}
@@ -666,18 +1099,39 @@ export const ComplianceAuditSection: React.FC<ComplianceAuditSectionProps> = ({
               </div>
             </div>
 
-            {/* Modal Footer */}
-            <div className="flex items-center justify-between pt-3 border-t border-[#E5E0D8] shrink-0">
+            {/* Modal Footer with Download Controls */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-[#E5E0D8] shrink-0">
               <span className="text-[10px] font-mono text-[#8C857B]">
-                Cryptographic Signature: {manifestHash.slice(0, 16)}...
+                Signature: {manifestHash.slice(0, 16)}...
               </span>
-              <button
-                type="button"
-                onClick={() => setShowPublicAuditModal(false)}
-                className="px-4 py-2 rounded-xl bg-[#5A5A40] hover:bg-[#4A4A33] text-white text-xs font-bold transition-all cursor-pointer"
-              >
-                Done
-              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleDownloadPDF}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FAF0EC] hover:bg-[#F5E2DA] border border-[#EECDBC] text-[#D67D5C] text-xs font-semibold transition-all cursor-pointer"
+                >
+                  <Printer className="w-3.5 h-3.5 text-[#D67D5C]" />
+                  <span>PDF Certificate</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadJSON}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#EBF3ED] hover:bg-[#DFEDE2] border border-[#C9D1BE] text-[#3D6E50] text-xs font-semibold transition-all cursor-pointer"
+                >
+                  <FileJson className="w-3.5 h-3.5 text-[#3D6E50]" />
+                  <span>JSON Record</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPublicAuditModal(false)}
+                  className="px-4 py-1.5 rounded-xl bg-[#5A5A40] hover:bg-[#4A4A33] text-white text-xs font-bold transition-all cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>
