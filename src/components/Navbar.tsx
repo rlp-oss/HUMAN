@@ -43,6 +43,7 @@ export type ActiveTab =
   | 'roadmap-site'
   | 'media-hub'
   | 'global-fund'
+  | 'crypto-wallet'
   | 'initiative'
   | 'developer-embed'
   | 'stripe-guide'
@@ -126,6 +127,14 @@ export const Navbar: React.FC<NavbarProps> = ({
       badge: 'Tokenomics',
       highlight: true,
       badgeColor: 'text-cyan-400'
+    },
+    { 
+      id: 'crypto-wallet' as ActiveTab, 
+      label: 'Sovereign Token Wallet', 
+      icon: Lock, 
+      badge: '24-Word Vault',
+      highlight: true,
+      badgeColor: 'text-[#10B981]'
     },
     { 
       id: 'global-fund' as ActiveTab, 

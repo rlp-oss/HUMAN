@@ -24,6 +24,7 @@ import { PublicMissionWebsite } from './components/PublicMissionWebsite';
 import { AppMediaHub } from './components/AppMediaHub';
 import { TechnicalAiAssessmentPanel } from './components/TechnicalAiAssessmentPanel';
 import { CryptoValuationOptimizer } from './components/CryptoValuationOptimizer';
+import { CryptoTokenWalletSuite } from './components/CryptoTokenWalletSuite';
 import { SideMenuTaskbar } from './components/SideMenuTaskbar';
 import { UniversalThemeHubModal } from './components/UniversalThemeHubModal';
 import { MasterAdminColorStudio } from './components/MasterAdminColorStudio';
@@ -94,6 +95,7 @@ function AppContent() {
     }
     if (hash === 'technical-ai' || path.includes('/technical-ai') || tabParam === 'technical-ai') return 'technical-ai';
     if (hash === 'crypto-valuation' || hash === 'crypto' || path.includes('/crypto') || tabParam === 'crypto-valuation') return 'crypto-valuation';
+    if (hash === 'crypto-wallet' || hash === 'wallet' || path.includes('/wallet') || tabParam === 'crypto-wallet' || tabParam === 'wallet') return 'crypto-wallet';
     if (hash === 'merchants' || path.includes('/merchants')) return 'merchants';
     if (hash === 'developer-embed' || hash === 'developers' || path.includes('/developers') || path.includes('/embed')) return 'developer-embed';
     if (hash === 'testers' || path.includes('/testers')) return 'testers';
@@ -275,6 +277,10 @@ function AppContent() {
 
             {activeTab === 'crypto-valuation' && (
               <CryptoValuationOptimizer />
+            )}
+
+            {activeTab === 'crypto-wallet' && (
+              <CryptoTokenWalletSuite />
             )}
 
             {activeTab === 'global-fund' && (

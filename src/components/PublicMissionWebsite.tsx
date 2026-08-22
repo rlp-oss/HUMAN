@@ -547,14 +547,27 @@ export const PublicMissionWebsite: React.FC<PublicMissionWebsiteProps> = ({
               <button
                 key={pillar.id}
                 onClick={() => setSelectedPillarId(pillar.id)}
-                className={`p-3.5 rounded-xl text-left border transition-all ${
+                className={`p-3.5 rounded-xl text-left border-2 transition-all cursor-pointer ${
                   isSelected
-                    ? `${pillar.bgLight} dark:bg-opacity-20 border-[${pillar.color}] shadow-sm ring-1 ring-[${pillar.color}]`
+                    ? 'bg-white dark:bg-slate-900 shadow-md ring-2'
                     : 'bg-white dark:bg-[#1A1916] border-[#E8E2D8] dark:border-[#2D2B26] hover:border-[#C4BCB0]'
                 }`}
+                style={{
+                  borderColor: isSelected ? pillar.color : undefined,
+                  boxShadow: isSelected ? `0 0 0 2px ${pillar.color}` : undefined
+                }}
               >
-                <span className="text-[10px] font-mono uppercase font-bold text-[#8C857B] block">Pillar</span>
-                <span className="text-xs sm:text-sm font-bold text-[#2D2926] dark:text-[#F3F1EC] line-clamp-1 mt-0.5">
+                <span 
+                  className="text-[10px] font-mono uppercase font-bold block"
+                  style={{ color: isSelected ? pillar.color : '#8C857B' }}
+                >
+                  Pillar
+                </span>
+                <span className={`text-xs sm:text-sm font-extrabold line-clamp-1 mt-0.5 ${
+                  isSelected 
+                    ? 'text-slate-950 dark:text-white' 
+                    : 'text-[#2D2926] dark:text-[#F3F1EC]'
+                }`}>
                   {pillar.evilTarget}
                 </span>
               </button>

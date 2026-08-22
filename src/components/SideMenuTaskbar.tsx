@@ -615,6 +615,23 @@ export const SideMenuTaskbar: React.FC<SideMenuTaskbarProps> = ({
 
                     <button
                       onClick={() => {
+                        onNavigateTab('crypto-wallet');
+                        setIsSideMenuOpen(false);
+                      }}
+                      className="p-2.5 rounded-xl bg-gradient-to-r from-[#064E3B] via-[#042F24] to-[#021A14] hover:opacity-95 border border-emerald-500 text-left text-white flex items-center gap-2 transition-colors cursor-pointer font-bold col-span-2 shadow-sm"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                      <div className="flex-1">
+                        <div className="text-xs font-mono font-bold flex items-center gap-1.5">
+                          <span className="text-white">Sovereign Crypto Token Wallet</span>
+                          <span className="text-[9px] px-1.5 py-0.2 bg-emerald-500 text-slate-950 rounded-full font-bold">24-Word Vault</span>
+                        </div>
+                        <div className="text-[10px] text-emerald-200 font-normal">BIP-39 phrase challenge, dual SMS/Email OTP & Zero-Knowledge zk-KYC</div>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => {
                         onNavigateTab('global-fund');
                         setIsSideMenuOpen(false);
                       }}

@@ -159,6 +159,17 @@ const DIRECTORY_ITEMS: NavDirectoryItem[] = [
     icon: Coins
   },
   {
+    id: 'crypto-wallet' as ActiveTab,
+    title: 'Sovereign Token Wallet Suite',
+    category: 'admin',
+    audience: 'Token Holders, Creators, Validators & Citizens',
+    urlPath: '/wallet or ?tab=crypto-wallet',
+    description: 'Self-custody BIP-39 24-word fortress wallet with mandatory phrase verification, phone/email 2FA, zero-knowledge humanity proof (zk-KYC), and ERC-4337 gasless transfers.',
+    badge: '24-Word Vault',
+    badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+    icon: Lock
+  },
+  {
     id: 'testers',
     title: 'Beta Tester CRM & Onboarding Console',
     category: 'admin',

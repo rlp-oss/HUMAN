@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, 
   Pause, 
@@ -16,8 +16,30 @@ import {
   Globe,
   Share2,
   Lock,
-  Compass
+  Compass,
+  Sparkles,
+  Upload,
+  Layers,
+  Film,
+  LayoutGrid,
+  Radio,
+  Sliders,
+  Check,
+  BrainCircuit,
+  Eye,
+  Plus,
+  Image as ImageIcon,
+  Trash2,
+  Link as LinkIcon,
+  UploadCloud,
+  X,
+  RefreshCw,
+  Cloud,
+  HardDrive
 } from 'lucide-react';
+import { GeminiPodcastVideoStudio, MediaAsset } from './GeminiPodcastVideoStudio';
+import { compressImage } from '../utils/imageCompressor';
+import { safeGetJSON, safeSetJSON, safeRemove, idbGet } from '../utils/safeStorage';
 
 // Interfaces for our state and data
 export interface PodcastEpisode {
@@ -53,7 +75,7 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
   onOpenOnboardModal
 }) => {
   // 1. Data Definitions
-  const episodes: PodcastEpisode[] = [
+  const initialEpisodes: PodcastEpisode[] = [
     {
       id: 'ep-sdk',
       title: 'The H.U.M.A.N. Initiative: The Open SDK Revolution',
@@ -116,6 +138,20 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
     }
   ];
 
+  // Dynamic episodes with localStorage persistence
+  const [episodes, setEpisodes] = useState<PodcastEpisode[]>(() => {
+    try {
+      const saved = localStorage.getItem('human_gemini_podcasts');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return [...parsed, ...initialEpisodes];
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return initialEpisodes;
+  });
+
   const apps: NativeApp[] = [
     {
       id: 'app-tome',
@@ -167,11 +203,151 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
     }
   ];
 
-  // 2. Playback State Control
+  // 2. Playback & Video Collage State Control
   const [activeEpisode, setActiveEpisode] = useState<PodcastEpisode>(episodes[0]);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [playbackProgress, setPlaybackProgress] = useState<number>(35); // simulated percent
   const [volume, setVolume] = useState<number>(80);
+  const [playerViewMode, setPlayerViewMode] = useState<'audio' | 'video_collage'>('video_collage');
+  const [isGeminiStudioOpen, setIsGeminiStudioOpen] = useState<boolean>(false);
+  const [geminiStudioInitialTab, setGeminiStudioInitialTab] = useState<'local' | 'drive'>('local');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const handleOpenGeminiStudio = (tab: 'local' | 'drive' = 'local') => {
+    setGeminiStudioInitialTab(tab);
+    setIsGeminiStudioOpen(true);
+  };
+
+  // 2.1 Custom App Logos State & Persistence (Protected against LocalStorage quota overflow)
+  const [customLogos, setCustomLogos] = useState<Record<string, string>>(() => {
+    return safeGetJSON<Record<string, string>>('human_custom_app_logos', {});
+  });
+  const [isLogoManagerOpen, setIsLogoManagerOpen] = useState<boolean>(false);
+  const [activeLogoEditAppId, setActiveLogoEditAppId] = useState<string>('app-tome');
+  const [customLogoUrlInput, setCustomLogoUrlInput] = useState<string>('');
+  const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
+
+  // Sync from IndexedDB in case of large past logos
+  useEffect(() => {
+    idbGet<Record<string, string>>('human_custom_app_logos').then((idbLogos) => {
+      if (idbLogos && Object.keys(idbLogos).length > 0) {
+        setCustomLogos((prev) => ({ ...idbLogos, ...prev }));
+      }
+    }).catch(() => {});
+  }, []);
+
+  const handleSaveCustomLogo = async (appId: string, url: string) => {
+    let optimizedUrl = url;
+    // If it's a base64 data URL or long image string, compress it to keep under quota
+    if (url.startsWith('data:image/')) {
+      try {
+        optimizedUrl = await compressImage(url, 256, 256, 0.85);
+      } catch (e) {
+        console.warn('Compression failed, using raw url', e);
+      }
+    }
+
+    const updated = { ...customLogos, [appId]: optimizedUrl };
+    setCustomLogos(updated);
+    safeSetJSON('human_custom_app_logos', updated);
+    
+    const appName = apps.find(a => a.id === appId)?.name || 'App';
+    setToastMessage(`Custom logo applied for ${appName}!`);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  const handleResetCustomLogo = (appId: string) => {
+    const updated = { ...customLogos };
+    delete updated[appId];
+    setCustomLogos(updated);
+    safeSetJSON('human_custom_app_logos', updated);
+    const appName = apps.find(a => a.id === appId)?.name || 'App';
+    setToastMessage(`Reset ${appName} to default generated vector logo.`);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  const handleResetAllLogos = () => {
+    setCustomLogos({});
+    safeRemove('human_custom_app_logos');
+    setToastMessage('All app logos reset to default vector graphics.');
+    setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  const handleFileLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>, appId: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setLogoUploadError('Please select a valid image file (PNG, SVG, JPG, WebP).');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setLogoUploadError('Image size exceeds 5MB. Please select a smaller logo.');
+      return;
+    }
+
+    setLogoUploadError(null);
+    try {
+      // Automatically compress and resize image to compact 256x256 WebP/PNG (~5-15KB)
+      const compressedDataUrl = await compressImage(file, 256, 256, 0.85);
+      await handleSaveCustomLogo(appId, compressedDataUrl);
+    } catch (err: any) {
+      console.error('Failed to process uploaded logo image:', err);
+      setLogoUploadError('Failed to optimize and process the image. Please try another file.');
+    }
+  };
+
+  // Background media assets for the live player video collage
+  const defaultPlayerAssets: MediaAsset[] = [
+    {
+      id: 'hero-1',
+      type: 'image',
+      name: 'Neural Human Symbiosis',
+      url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80',
+    },
+    {
+      id: 'hero-2',
+      type: 'image',
+      name: 'Decentralized Nodes',
+      url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80',
+    },
+    {
+      id: 'hero-3',
+      type: 'image',
+      name: 'Acoustic Stems Lab',
+      url: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=800&q=80',
+    },
+    {
+      id: 'hero-4',
+      type: 'image',
+      name: 'Cleanroom Architecture',
+      url: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80',
+    }
+  ];
+  const [currentCollageAssets, setCurrentCollageAssets] = useState<MediaAsset[]>(defaultPlayerAssets);
+  const [activeCollageIndex, setActiveCollageIndex] = useState<number>(0);
+  const [currentCollageStyle, setCurrentCollageStyle] = useState<string>('bento');
+
+  // Audio simulation timer
+  useEffect(() => {
+    let timer: any = null;
+    if (isPlaying) {
+      timer = setInterval(() => {
+        setPlaybackProgress((prev) => (prev >= 100 ? 0 : prev + 1));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isPlaying]);
+
+  // Slideshow timer for background collage in player
+  useEffect(() => {
+    if (!isPlaying) return;
+    const interval = setInterval(() => {
+      setActiveCollageIndex((prev) => (prev + 1) % currentCollageAssets.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [isPlaying, currentCollageAssets.length]);
 
   const togglePlayback = () => {
     setIsPlaying(!isPlaying);
@@ -181,6 +357,21 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
     setActiveEpisode(episode);
     setIsPlaying(false);
     setPlaybackProgress(0);
+  };
+
+  const handlePublishFromStudio = (newEp: PodcastEpisode, assets: MediaAsset[], style: string) => {
+    setEpisodes((prev) => [newEp, ...prev]);
+    setActiveEpisode(newEp);
+    setCurrentCollageAssets(assets);
+    setCurrentCollageStyle(style);
+    setIsPlaying(true);
+    setPlaybackProgress(0);
+    
+    const existing = safeGetJSON<PodcastEpisode[]>('human_gemini_podcasts', []);
+    safeSetJSON('human_gemini_podcasts', [newEp, ...existing]);
+
+    setToastMessage(`Published "${newEp.title}" with dynamic video collage to the Broadcast Matrix!`);
+    setTimeout(() => setToastMessage(null), 5000);
   };
 
   // 3. Logo SVG Generators based on their descriptions
@@ -315,12 +506,38 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
     }
   };
 
+  // Helper to render either custom uploaded logo or the generated vector logo
+  const renderAppLogo = (app: NativeApp) => {
+    const customUrl = customLogos[app.id];
+    if (customUrl) {
+      return (
+        <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-900 border border-slate-700 flex items-center justify-center p-1.5 shadow-inner group-hover:border-emerald-500/50 transition-colors">
+          <img 
+            src={customUrl} 
+            alt={`${app.name} Real Logo`} 
+            className="w-full h-full object-contain"
+            referrerPolicy="no-referrer"
+          />
+        </div>
+      );
+    }
+    return renderLogoSVG(app.logoType, app.themeColor);
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-emerald-500 selection:text-black rounded-3xl overflow-hidden border border-slate-850 shadow-2xl">
       
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-emerald-500 text-slate-950 px-5 py-3 rounded-2xl font-mono text-xs font-bold shadow-2xl flex items-center space-x-2 animate-bounce">
+          <Check className="w-4 h-4" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* 1. Header/Navigation */}
       <header className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
             <div className="bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">
               <Compass className="w-6 h-6 text-emerald-400" />
@@ -330,14 +547,24 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
               <span className="text-xs text-emerald-500 tracking-widest font-mono uppercase">App & Broadcast Hub</span>
             </div>
           </div>
-          <div className="flex items-center space-x-4 sm:space-x-6">
-            <span className="text-xs sm:text-sm font-mono text-slate-400 bg-slate-900 px-3 py-1.5 rounded-md border border-slate-800 hidden sm:inline">
+          <div className="flex items-center space-x-3 sm:space-x-4">
+            
+            {/* Gemini Podcast Studio Button */}
+            <button
+              onClick={() => setIsGeminiStudioOpen(true)}
+              className="flex items-center space-x-1.5 text-xs text-slate-100 font-mono bg-slate-900 hover:bg-slate-800 border border-emerald-500/40 hover:border-emerald-400 px-3.5 py-2 rounded-md font-bold transition-all shadow-md cursor-pointer"
+            >
+              <BrainCircuit className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Gemini Podcast & Collage Studio</span>
+            </button>
+
+            <span className="text-xs sm:text-sm font-mono text-slate-400 bg-slate-900 px-3 py-1.5 rounded-md border border-slate-800 hidden md:inline">
               C2PA Merkle Root Verified
             </span>
             {onOpenOnboardModal ? (
               <button 
                 onClick={onOpenOnboardModal}
-                className="flex items-center space-x-1.5 text-xs text-slate-950 font-mono bg-emerald-500 hover:bg-emerald-400 px-4 py-2.5 rounded-md font-bold transition-all transform hover:-translate-y-0.5 shadow-lg shadow-emerald-500/20 cursor-pointer"
+                className="flex items-center space-x-1.5 text-xs text-slate-950 font-mono bg-emerald-500 hover:bg-emerald-400 px-4 py-2 rounded-md font-bold transition-all transform hover:-translate-y-0.5 shadow-lg shadow-emerald-500/20 cursor-pointer"
               >
                 <span>Onboarding Console</span>
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -347,7 +574,7 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
                 href="https://human-ethical-ai.ai.studio" 
                 target="_blank" 
                 rel="noreferrer"
-                className="flex items-center space-x-1.5 text-xs text-slate-950 font-mono bg-emerald-500 hover:bg-emerald-400 px-4 py-2.5 rounded-md font-bold transition-all transform hover:-translate-y-0.5 shadow-lg shadow-emerald-500/20"
+                className="flex items-center space-x-1.5 text-xs text-slate-950 font-mono bg-emerald-500 hover:bg-emerald-400 px-4 py-2 rounded-md font-bold transition-all transform hover:-translate-y-0.5 shadow-lg shadow-emerald-500/20"
               >
                 <span>Onboarding Console</span>
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -371,6 +598,27 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
             <p className="text-base sm:text-lg text-slate-400 leading-relaxed max-w-2xl">
               Technology should be our symbiotic partner, never our replacement. Dive into our complete podcast fleet featuring comprehensive insights, application architectures, and the revolutionary <strong className="text-slate-100">H.U.M.A.N. SDK integration pipeline</strong>—designed to restore creator trust and fund regional human survival.
             </p>
+
+            {/* Quick studio launcher pills */}
+            <div className="pt-1 flex flex-wrap gap-2.5">
+              <button
+                onClick={() => handleOpenGeminiStudio('local')}
+                className="inline-flex items-center space-x-2 bg-gradient-to-r from-emerald-500/20 via-cyan-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 border border-emerald-500/40 text-emerald-300 px-4 py-2.5 rounded-xl text-xs font-mono font-bold transition-all shadow-lg cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <span>Upload Gemini Notebook Audio & Video Collage</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                onClick={() => handleOpenGeminiStudio('drive')}
+                className="inline-flex items-center space-x-1.5 bg-slate-900/80 hover:bg-slate-850 border border-slate-750 text-slate-200 hover:text-white px-3.5 py-2.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer"
+              >
+                <Cloud className="w-4 h-4 text-cyan-400" />
+                <span>Import from Google Drive</span>
+              </button>
+            </div>
+
             <div className="flex flex-wrap gap-4 pt-2">
               <div className="flex items-center space-x-2.5 bg-slate-900/50 border border-slate-800 p-3 rounded-lg">
                 <Users className="w-5 h-5 text-emerald-400" />
@@ -395,54 +643,144 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
               </div>
             </div>
           </div>
-          <div className="lg:col-span-5 bg-slate-900/30 border border-slate-900 p-6 rounded-2xl relative">
-            <div className="absolute top-3 right-3 bg-emerald-500/10 text-emerald-400 font-mono text-[10px] uppercase border border-emerald-500/25 px-2 py-0.5 rounded">
-              Active Audio Transmitter
-            </div>
+
+          {/* RIGHT SIDE: Interactive Video Previewer & Player Card */}
+          <div className="lg:col-span-5 bg-slate-900/40 border border-slate-850 p-5 rounded-3xl relative overflow-hidden shadow-2xl backdrop-blur-sm">
             
-            {/* Custom Interactive Player Card */}
-            <div className="space-y-4">
-              <span className="text-xs font-mono text-emerald-500 tracking-wider uppercase block">Currently Playing</span>
-              <div className="h-1 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full w-12" />
-              <div>
-                <h3 className="text-xl font-bold tracking-tight text-slate-100 line-clamp-2">{activeEpisode.title}</h3>
-                <span className="text-xs text-slate-500 mt-1 block">Duration: {activeEpisode.duration} • Category: {activeEpisode.category}</span>
+            {/* Mode Switcher Banner: Audio vs Video Collage */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px] font-mono">
+                <button
+                  onClick={() => setPlayerViewMode('video_collage')}
+                  className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
+                    playerViewMode === 'video_collage' ? 'bg-emerald-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Film className="w-3 h-3" />
+                  <span>Video Collage</span>
+                </button>
+                <button
+                  onClick={() => setPlayerViewMode('audio')}
+                  className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
+                    playerViewMode === 'audio' ? 'bg-emerald-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Radio className="w-3 h-3" />
+                  <span>Audio Matrix</span>
+                </button>
               </div>
 
-              {/* Progress Bar & Audio Waves */}
-              <div className="space-y-2 pt-4">
-                <div className="flex items-center justify-between text-xs font-mono text-slate-500">
-                  <span>06:12</span>
-                  <span>{activeEpisode.duration}</span>
-                </div>
-                
-                {/* Simulated Audio Waveform Visual */}
-                <div className="flex items-end justify-between h-10 px-2 bg-slate-950/60 rounded-lg border border-slate-900/60 py-1.5 space-x-0.5">
-                  {[40, 20, 60, 80, 50, 30, 45, 90, 70, 40, 20, 60, 85, 40, 30, 75, 50, 95, 60, 30, 45, 80, 65, 30, 50, 70, 90, 40, 25, 55, 75, 40].map((val, idx) => {
-                    const isActive = idx < 20; // Simulated playback cursor
-                    return (
+              <button
+                onClick={() => setIsGeminiStudioOpen(true)}
+                className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 cursor-pointer bg-cyan-950/40 border border-cyan-800/40 px-2 py-1 rounded-lg"
+                title="Open Studio"
+              >
+                <Sparkles className="w-3 h-3" />
+                <span>Open Studio</span>
+              </button>
+            </div>
+            
+            {/* Custom Interactive Player Card with Video Background Collage */}
+            <div className="space-y-3">
+              
+              {/* VIDEO COLLAGE STAGE */}
+              {playerViewMode === 'video_collage' && (
+                <div className="relative rounded-2xl overflow-hidden aspect-video border border-slate-800 bg-slate-950 shadow-inner group">
+                  
+                  {/* Dynamic Background Images Grid / Ken Burns Motion */}
+                  <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-1 p-1">
+                    {currentCollageAssets.slice(0, 4).map((asset, i) => {
+                      const isActive = i === (activeCollageIndex % 4);
+                      return (
+                        <div key={asset.id} className="relative rounded-lg overflow-hidden bg-slate-900">
+                          <img 
+                            src={asset.url} 
+                            alt={asset.name} 
+                            className={`w-full h-full object-cover transition-all duration-1000 ${
+                              isPlaying && isActive ? 'scale-115 opacity-100' : 'scale-100 opacity-70'
+                            }`} 
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Dark Translucent Overlay */}
+                  <div className="absolute inset-0 bg-slate-950/45 pointer-events-none" />
+
+                  {/* Top Badge Overlay */}
+                  <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
+                    <span className="text-[9px] font-mono text-emerald-300 bg-slate-950/90 border border-emerald-500/40 px-2 py-0.5 rounded-md flex items-center space-x-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                      <span>LIVE COLLAGE REEL</span>
+                    </span>
+                    <span className="text-[9px] font-mono text-slate-300 bg-slate-950/90 border border-slate-800 px-2 py-0.5 rounded-md">
+                      C2PA Verified
+                    </span>
+                  </div>
+
+                  {/* Center / Bottom Audio Waveform inside the video canvas */}
+                  <div className="absolute bottom-2 left-2 right-2 flex items-end justify-between h-8 px-2 bg-slate-950/80 backdrop-blur-xs rounded-lg border border-slate-800/80 py-1 space-x-0.5 pointer-events-none">
+                    {[30, 50, 20, 70, 40, 85, 60, 30, 65, 90, 40, 75, 50, 95, 30, 60, 80, 40, 70, 85, 30, 60, 90, 45].map((val, idx) => (
                       <div 
                         key={idx} 
-                        className={`w-full rounded-t-sm transition-all duration-300 ${isActive ? (isPlaying ? 'bg-emerald-400 animate-pulse' : 'bg-emerald-500') : 'bg-slate-800'}`}
-                        style={{ height: `${val}%` }}
+                        className={`w-full rounded-t-xs transition-all duration-200 ${
+                          isPlaying ? 'bg-gradient-to-t from-emerald-400 to-cyan-400' : 'bg-slate-700'
+                        }`}
+                        style={{ height: `${isPlaying ? Math.max(20, val * (0.6 + Math.random() * 0.4)) : val * 0.3}%` }}
                       />
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
+              )}
 
-                <div className="relative h-1 w-full bg-slate-800 rounded-full overflow-hidden">
-                  <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-500 to-cyan-400" style={{ width: `${playbackProgress}%` }} />
+              {/* Title & Metadata */}
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-[10px] font-mono uppercase text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
+                    {activeEpisode.category}
+                  </span>
+                  <span className="text-xs text-slate-500 font-mono">
+                    {activeEpisode.duration}
+                  </span>
                 </div>
+                <h3 className="text-lg font-bold tracking-tight text-slate-100 line-clamp-1 mt-1">
+                  {activeEpisode.title}
+                </h3>
+              </div>
+
+              {/* Progress Bar & Audio Waves (For audio mode) */}
+              {playerViewMode === 'audio' && (
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-end justify-between h-10 px-2 bg-slate-950/60 rounded-lg border border-slate-900/60 py-1.5 space-x-0.5">
+                    {[40, 20, 60, 80, 50, 30, 45, 90, 70, 40, 20, 60, 85, 40, 30, 75, 50, 95, 60, 30, 45, 80, 65, 30, 50, 70, 90, 40, 25, 55, 75, 40].map((val, idx) => {
+                      const isActive = idx < Math.floor(playbackProgress * 0.32);
+                      return (
+                        <div 
+                          key={idx} 
+                          className={`w-full rounded-t-sm transition-all duration-300 ${isActive ? (isPlaying ? 'bg-emerald-400 animate-pulse' : 'bg-emerald-500') : 'bg-slate-800'}`}
+                          style={{ height: `${val}%` }}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Scrubber Bar */}
+              <div className="relative h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-500 to-cyan-400" style={{ width: `${playbackProgress}%` }} />
               </div>
 
               {/* Player Controls */}
-              <div className="flex items-center justify-between pt-4">
-                <div className="flex items-center space-x-4">
+              <div className="flex items-center justify-between pt-1">
+                <div className="flex items-center space-x-3">
                   <button 
                     onClick={togglePlayback}
-                    className="w-12 h-12 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-full flex items-center justify-center font-bold transition-all transform active:scale-95 shadow-md shadow-emerald-500/20 cursor-pointer"
+                    className="w-10 h-10 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-full flex items-center justify-center font-bold transition-all transform active:scale-95 shadow-md shadow-emerald-500/20 cursor-pointer"
                   >
-                    {isPlaying ? <Pause className="w-5 h-5 fill-slate-950" /> : <Play className="w-5 h-5 fill-slate-950 ml-0.5" />}
+                    {isPlaying ? <Pause className="w-4 h-4 fill-slate-950" /> : <Play className="w-4 h-4 fill-slate-950 ml-0.5" />}
                   </button>
                   <div className="flex items-center space-x-1.5 text-slate-400">
                     <Volume2 className="w-4 h-4" />
@@ -452,18 +790,30 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
                       max="100" 
                       value={volume} 
                       onChange={(e) => setVolume(Number(e.target.value))}
-                      className="w-16 accent-emerald-500 h-1 bg-slate-800 rounded-lg outline-none cursor-pointer" 
+                      className="w-14 accent-emerald-500 h-1 bg-slate-800 rounded-lg outline-none cursor-pointer" 
                     />
                   </div>
                 </div>
-                <button 
-                  onClick={() => alert(`Sharing Link for: ${activeEpisode.title}`)}
-                  className="p-2 border border-slate-800 hover:border-slate-700 hover:bg-slate-900 rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
-                  title="Share Episode"
-                >
-                  <Share2 className="w-4 h-4" />
-                </button>
+
+                <div className="flex items-center space-x-2">
+                  <button 
+                    onClick={() => setIsGeminiStudioOpen(true)}
+                    className="px-2.5 py-1.5 border border-slate-800 hover:border-slate-700 bg-slate-950 rounded-lg text-slate-300 text-xs font-mono flex items-center space-x-1 hover:text-emerald-400 transition-all cursor-pointer"
+                    title="Edit Background Collage"
+                  >
+                    <Sliders className="w-3.5 h-3.5" />
+                    <span>Collage</span>
+                  </button>
+                  <button 
+                    onClick={() => alert(`Sharing Link for: ${activeEpisode.title}`)}
+                    className="p-1.5 border border-slate-800 hover:border-slate-700 bg-slate-950 rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
+                    title="Share Episode"
+                  >
+                    <Share2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
+
             </div>
           </div>
         </div>
@@ -474,35 +824,66 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
         
         {/* Left Side: Broadcast / Podcast Selector (8 columns) */}
         <section className="lg:col-span-7 space-y-8">
-          <div className="border-b border-slate-900 pb-4">
-            <h3 className="text-2xl font-bold tracking-tight text-slate-100 flex items-center space-x-2">
-              <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full" />
-              <span>THE BROADCAST MATRIX</span>
-            </h3>
-            <p className="text-sm text-slate-400 mt-1">Select an episode to populate the control studio and inspect deep takeaways.</p>
+          <div className="border-b border-slate-900 pb-4 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h3 className="text-2xl font-bold tracking-tight text-slate-100 flex items-center space-x-2">
+                <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full" />
+                <span>THE BROADCAST MATRIX</span>
+              </h3>
+              <p className="text-sm text-slate-400 mt-1">Select an episode to populate the control studio and inspect deep takeaways.</p>
+            </div>
+
+            {/* Studio Action Buttons */}
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => handleOpenGeminiStudio('local')}
+                className="flex items-center space-x-1.5 text-xs font-mono font-bold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 px-3.5 py-2 rounded-xl transition-all active:scale-95 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Upload Local Podcast</span>
+              </button>
+              <button
+                onClick={() => handleOpenGeminiStudio('drive')}
+                className="flex items-center space-x-1.5 text-xs font-mono font-bold bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 px-3.5 py-2 rounded-xl transition-all active:scale-95 cursor-pointer"
+              >
+                <Cloud className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Google Drive Audio</span>
+              </button>
+            </div>
           </div>
 
           <div className="space-y-4">
             {episodes.map((ep) => {
               const isSelected = ep.id === activeEpisode.id;
+              const isGeminiCustom = ep.id.startsWith('gemini-podcast');
               return (
                 <div 
                   key={ep.id}
                   onClick={() => handleEpisodeSelect(ep)}
                   className={`border p-5 rounded-xl transition-all duration-300 cursor-pointer text-left relative ${isSelected ? 'bg-slate-900/60 border-emerald-500/40 shadow-lg shadow-emerald-500/5' : 'bg-slate-950/40 border-slate-900 hover:bg-slate-900/20 hover:border-slate-800'}`}
                 >
-                  {isSelected && (
-                    <div className="absolute top-4 right-4 bg-emerald-500/15 border border-emerald-500/30 text-[10px] text-emerald-400 font-mono uppercase px-2 py-0.5 rounded flex items-center space-x-1">
-                      <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping" />
-                      <span>Transmitting</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <span className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded ${ep.category === 'Protocol' ? 'bg-emerald-500/10 text-emerald-400' : ep.category === 'Engineering' ? 'bg-cyan-500/10 text-cyan-400' : 'bg-purple-500/10 text-purple-400'}`}>
+                        {ep.category}
+                      </span>
+                      {isGeminiCustom && (
+                        <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 flex items-center space-x-1">
+                          <BrainCircuit className="w-2.5 h-2.5" />
+                          <span>NotebookLM Overview</span>
+                        </span>
+                      )}
+                      <span className="text-xs font-mono text-slate-500">{ep.duration} mins</span>
                     </div>
-                  )}
-                  <div className="flex items-center space-x-2.5 mb-2">
-                    <span className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded ${ep.category === 'Protocol' ? 'bg-emerald-500/10 text-emerald-400' : ep.category === 'Engineering' ? 'bg-cyan-500/10 text-cyan-400' : 'bg-purple-500/10 text-purple-400'}`}>
-                      {ep.category}
-                    </span>
-                    <span className="text-xs font-mono text-slate-500">{ep.duration} mins</span>
+
+                    {isSelected && (
+                      <div className="bg-emerald-500/15 border border-emerald-500/30 text-[10px] text-emerald-400 font-mono uppercase px-2 py-0.5 rounded flex items-center space-x-1">
+                        <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping" />
+                        <span>Transmitting</span>
+                      </div>
+                    )}
                   </div>
+
                   <h4 className={`text-lg font-bold tracking-tight transition-colors ${isSelected ? 'text-emerald-400' : 'text-slate-100'}`}>
                     {ep.title}
                   </h4>
@@ -512,7 +893,19 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
                   
                   {isSelected && (
                     <div className="mt-4 pt-4 border-t border-slate-800 space-y-3">
-                      <div className="text-xs font-bold text-slate-300 font-mono tracking-wider uppercase">Key Takeaways from the episode:</div>
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs font-bold text-slate-300 font-mono tracking-wider uppercase">Key Takeaways from the episode:</div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsGeminiStudioOpen(true);
+                          }}
+                          className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 cursor-pointer"
+                        >
+                          <Film className="w-3 h-3" />
+                          <span>Customize Video Collage</span>
+                        </button>
+                      </div>
                       <ul className="space-y-2">
                         {ep.keyTakeaways.map((takeaway, index) => (
                           <li key={index} className="flex items-start text-xs text-slate-400 space-x-2">
@@ -531,57 +924,102 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
 
         {/* Right Side: The Ecosystem Applications (5 columns) */}
         <section className="lg:col-span-5 space-y-8">
-          <div className="border-b border-slate-900 pb-4">
-            <h3 className="text-2xl font-bold tracking-tight text-slate-100 flex items-center space-x-2">
-              <span className="w-2.5 h-2.5 bg-cyan-500 rounded-full" />
-              <span>THE APPLICATION REGISTRY</span>
-            </h3>
-            <p className="text-sm text-slate-400 mt-1">Live subdomains deployed and secured under Fairly Trained 2026 guidelines.</p>
+          <div className="border-b border-slate-900 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-2xl font-bold tracking-tight text-slate-100 flex items-center space-x-2">
+                <span className="w-2.5 h-2.5 bg-cyan-500 rounded-full" />
+                <span>THE APPLICATION REGISTRY</span>
+              </h3>
+              <p className="text-sm text-slate-400 mt-1">Live subdomains deployed and secured under Fairly Trained 2026 guidelines.</p>
+            </div>
+
+            <button
+              onClick={() => setIsLogoManagerOpen(true)}
+              className="flex items-center space-x-1.5 text-xs font-mono font-bold bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 px-3.5 py-2 rounded-xl transition-all active:scale-95 cursor-pointer shrink-0 self-start sm:self-auto shadow-sm"
+            >
+              <ImageIcon className="w-3.5 h-3.5" />
+              <span>Customize Real Logos</span>
+            </button>
           </div>
 
           <div className="grid grid-cols-1 gap-6">
-            {apps.map((app) => (
-              <div 
-                key={app.id} 
-                className="bg-slate-950 border border-slate-900 rounded-2xl p-6 transition-all duration-300 hover:border-slate-800 flex flex-col justify-between"
-                style={{ boxShadow: `0 4px 20px -2px ${app.glowColor}` }}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
-                      {renderLogoSVG(app.logoType, app.themeColor)}
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[10px] font-mono text-slate-500 tracking-wider uppercase block">System Registration ID</span>
-                      <span className="text-xs font-bold font-mono text-emerald-400 tracking-tight">{app.systemId}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-1.5">
-                    <h4 className="text-xl font-bold tracking-tight text-slate-100">{app.name}</h4>
-                    <span className="text-xs font-mono text-emerald-500 block">{app.tagline}</span>
-                    <p className="text-sm text-slate-400 leading-relaxed pt-2">
-                      {app.description}
-                    </p>
-                  </div>
-                </div>
+            {apps.map((app) => {
+              const hasCustomLogo = Boolean(customLogos[app.id]);
+              return (
+                <div 
+                  key={app.id} 
+                  className="bg-slate-950 border border-slate-900 rounded-2xl p-6 transition-all duration-300 hover:border-slate-800 flex flex-col justify-between group"
+                  style={{ boxShadow: `0 4px 20px -2px ${app.glowColor}` }}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="relative group/logo">
+                        <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800 transition-all group-hover:border-slate-700">
+                          {renderAppLogo(app)}
+                        </div>
 
-                <div className="mt-6 pt-4 border-t border-slate-900 flex items-center justify-between">
-                  <span className="text-[10px] font-mono uppercase tracking-wider bg-slate-900 text-slate-400 px-2 py-1 rounded border border-slate-800">
-                    {app.licenseStandard}
-                  </span>
-                  <a 
-                    href={app.url} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="flex items-center space-x-1 text-xs text-slate-100 hover:text-emerald-400 font-mono tracking-tight font-bold transition-colors"
-                  >
-                    <span>Launch Studio</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </a>
+                        {/* Quick Replace Logo Badge on Hover */}
+                        <button
+                          onClick={() => {
+                            setActiveLogoEditAppId(app.id);
+                            setIsLogoManagerOpen(true);
+                          }}
+                          className="absolute -bottom-2 -right-2 p-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg shadow-md transition-all scale-90 sm:scale-100 cursor-pointer"
+                          title="Replace with your own real logo"
+                        >
+                          <ImageIcon className="w-3 h-3" />
+                        </button>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-[10px] font-mono text-slate-500 tracking-wider uppercase block">System Registration ID</span>
+                        <span className="text-xs font-bold font-mono text-emerald-400 tracking-tight">{app.systemId}</span>
+                        {hasCustomLogo && (
+                          <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 inline-block mt-1">
+                            Real Logo Active
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xl font-bold tracking-tight text-slate-100">{app.name}</h4>
+                        <button
+                          onClick={() => {
+                            setActiveLogoEditAppId(app.id);
+                            setIsLogoManagerOpen(true);
+                          }}
+                          className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 cursor-pointer transition-colors"
+                        >
+                          <ImageIcon className="w-3 h-3" />
+                          <span>{hasCustomLogo ? 'Change Real Logo' : 'Upload Real Logo'}</span>
+                        </button>
+                      </div>
+                      <span className="text-xs font-mono text-emerald-500 block">{app.tagline}</span>
+                      <p className="text-sm text-slate-400 leading-relaxed pt-2">
+                        {app.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-slate-900 flex items-center justify-between">
+                    <span className="text-[10px] font-mono uppercase tracking-wider bg-slate-900 text-slate-400 px-2 py-1 rounded border border-slate-800">
+                      {app.licenseStandard}
+                    </span>
+                    <a 
+                      href={app.url} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="flex items-center space-x-1 text-xs text-slate-100 hover:text-emerald-400 font-mono tracking-tight font-bold transition-colors"
+                    >
+                      <span>Launch Studio</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
@@ -670,6 +1108,233 @@ await sdk.initialize();`}
           </div>
         </div>
       </footer>
+
+      {/* 6. Gemini Podcast & Video Collage Studio Modal */}
+      {isGeminiStudioOpen && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fade-in">
+          <div className="w-full max-w-7xl max-h-[92vh] flex flex-col my-auto overflow-y-auto">
+            <GeminiPodcastVideoStudio
+              onClose={() => setIsGeminiStudioOpen(false)}
+              onPublishEpisode={handlePublishFromStudio}
+              initialEpisode={activeEpisode}
+              initialSourceTab={geminiStudioInitialTab}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 7. Real App Logos Customizer & Manager Modal */}
+      {isLogoManagerOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fade-in overflow-y-auto">
+          <div className="bg-slate-950 border border-slate-800 rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden my-auto">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800 bg-slate-900/60">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-cyan-500/15 border border-cyan-500/30 rounded-xl text-cyan-400">
+                  <ImageIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-100 flex items-center space-x-2">
+                    <span>Application Real Logo Manager</span>
+                    <span className="text-[10px] font-mono font-normal uppercase px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                      Persistent
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Replace generated vector graphics with your own real brand logos.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  setIsLogoManagerOpen(false);
+                  setLogoUploadError(null);
+                  setCustomLogoUrlInput('');
+                }}
+                className="p-2 text-slate-400 hover:text-slate-100 hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-6 overflow-y-auto flex-1 text-xs font-sans">
+              
+              {/* App Selection Tabs */}
+              <div>
+                <label className="text-[11px] font-mono text-slate-400 font-bold block uppercase tracking-wider mb-2">
+                  Select App to Replace Logo:
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {apps.map((app) => {
+                    const isSelected = app.id === activeLogoEditAppId;
+                    const hasCustom = Boolean(customLogos[app.id]);
+                    return (
+                      <button
+                        key={app.id}
+                        onClick={() => {
+                          setActiveLogoEditAppId(app.id);
+                          setLogoUploadError(null);
+                          setCustomLogoUrlInput('');
+                        }}
+                        className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-slate-900 border-cyan-500 shadow-md shadow-cyan-500/10 ring-1 ring-cyan-500'
+                            : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] font-mono text-slate-500">{app.id.replace('app-', '#')}</span>
+                          {hasCustom ? (
+                            <span className="w-2 h-2 rounded-full bg-emerald-400" title="Custom logo active" />
+                          ) : (
+                            <span className="w-2 h-2 rounded-full bg-slate-700" title="Default vector" />
+                          )}
+                        </div>
+                        <span className={`font-bold text-xs truncate ${isSelected ? 'text-cyan-300' : 'text-slate-200'}`}>
+                          {app.name}
+                        </span>
+                        <span className="text-[9px] font-mono text-slate-500 mt-1">
+                          {hasCustom ? 'Real Logo' : 'Generated'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Active App Customizer Card */}
+              {(() => {
+                const targetApp = apps.find(a => a.id === activeLogoEditAppId) || apps[0];
+                const currentCustomLogo = customLogos[targetApp.id];
+
+                return (
+                  <div className="space-y-6">
+                    
+                    {/* Live Preview Card */}
+                    <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl flex flex-col sm:flex-row items-center gap-5">
+                      <div className="relative shrink-0">
+                        <div className="bg-slate-950 p-3 rounded-2xl border border-slate-700 shadow-xl flex items-center justify-center">
+                          {renderAppLogo(targetApp)}
+                        </div>
+                        <span className={`absolute -bottom-2 -right-2 text-[9px] font-mono uppercase px-2 py-0.5 rounded-full font-bold shadow-md ${
+                          currentCustomLogo 
+                            ? 'bg-emerald-500 text-slate-950' 
+                            : 'bg-slate-800 text-slate-300 border border-slate-700'
+                        }`}>
+                          {currentCustomLogo ? 'Real Custom' : 'Default SVG'}
+                        </span>
+                      </div>
+
+                      <div className="space-y-1 text-center sm:text-left flex-1">
+                        <h4 className="text-sm font-bold text-slate-100">{targetApp.name}</h4>
+                        <p className="text-[11px] font-mono text-emerald-400">{targetApp.systemId}</p>
+                        <p className="text-xs text-slate-400">{targetApp.tagline}</p>
+                        {currentCustomLogo && (
+                          <div className="pt-2">
+                            <button
+                              onClick={() => handleResetCustomLogo(targetApp.id)}
+                              className="text-[11px] font-mono text-rose-400 hover:text-rose-300 flex items-center space-x-1 cursor-pointer transition-colors"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Revert to Default Generated Vector</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Upload Section 1: File from Computer / Device */}
+                    <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold text-slate-200 flex items-center space-x-1.5">
+                          <UploadCloud className="w-4 h-4 text-cyan-400" />
+                          <span>Option 1: Upload Image File (PNG, SVG, JPG, WebP)</span>
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-500">Max 3MB</span>
+                      </div>
+
+                      <label className="border-2 border-dashed border-slate-800 hover:border-cyan-500/50 hover:bg-cyan-500/5 rounded-xl p-5 flex flex-col items-center justify-center cursor-pointer transition-all text-center group">
+                        <UploadCloud className="w-6 h-6 text-slate-500 group-hover:text-cyan-400 mb-2 transition-colors" />
+                        <span className="text-xs text-slate-300 font-medium">Click to select or drop your real brand logo here</span>
+                        <span className="text-[10px] font-mono text-slate-500 mt-1">Recommended: 256x256 square PNG or SVG with transparent background</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleFileLogoUpload(e, targetApp.id)}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Upload Section 2: Direct Image URL */}
+                    <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-3">
+                      <span className="text-xs font-mono font-bold text-slate-200 flex items-center space-x-1.5">
+                        <LinkIcon className="w-4 h-4 text-cyan-400" />
+                        <span>Option 2: Direct Web Image URL</span>
+                      </span>
+
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          placeholder="https://example.com/brand-logo.png"
+                          value={customLogoUrlInput}
+                          onChange={(e) => setCustomLogoUrlInput(e.target.value)}
+                          className="flex-1 bg-slate-900 border border-slate-800 focus:border-cyan-500 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-100 placeholder:text-slate-600 outline-none"
+                        />
+                        <button
+                          onClick={() => {
+                            if (!customLogoUrlInput.trim()) return;
+                            handleSaveCustomLogo(targetApp.id, customLogoUrlInput.trim());
+                            setCustomLogoUrlInput('');
+                          }}
+                          disabled={!customLogoUrlInput.trim()}
+                          className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono font-bold text-xs rounded-xl transition-all disabled:opacity-50 cursor-pointer"
+                        >
+                          Apply URL
+                        </button>
+                      </div>
+                    </div>
+
+                    {logoUploadError && (
+                      <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 font-mono text-xs">
+                        {logoUploadError}
+                      </div>
+                    )}
+
+                  </div>
+                );
+              })()}
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-slate-800 bg-slate-900/60 flex items-center justify-between">
+              <button
+                onClick={handleResetAllLogos}
+                className="text-xs font-mono text-slate-400 hover:text-rose-400 transition-colors flex items-center space-x-1 cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Reset All 4 Logos</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsLogoManagerOpen(false);
+                  setLogoUploadError(null);
+                  setCustomLogoUrlInput('');
+                }}
+                className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono font-bold text-xs transition-all shadow-md cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

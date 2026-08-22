@@ -52,8 +52,13 @@ export async function listDriveFiles(
     query?: string;
     folderOnly?: boolean;
     imagesOnly?: boolean;
+    audioOnly?: boolean;
   }
 ): Promise<{ files: GoogleDriveFile[]; nextPageToken?: string }> {
+  if (!accessToken || accessToken === 'undefined' || accessToken === 'null') {
+    throw new Error('Google Drive authorization required. Please sign in with Google to grant Drive permissions.');
+  }
+
   try {
     const queryParts: string[] = ['trashed = false'];
 
@@ -61,6 +66,8 @@ export async function listDriveFiles(
       queryParts.push("mimeType = 'application/vnd.google-apps.folder'");
     } else if (options?.imagesOnly) {
       queryParts.push("(mimeType contains 'image/' or mimeType = 'image/png' or mimeType = 'image/jpeg' or mimeType = 'image/svg+xml')");
+    } else if (options?.audioOnly) {
+      queryParts.push("(mimeType contains 'audio/' or name contains '.wav' or name contains '.mp3' or name contains '.m4a' or name contains '.ogg' or name contains '.flac' or name contains '.aac')");
     }
 
     if (options?.query) {
@@ -94,12 +101,55 @@ export async function listDriveFiles(
 }
 
 /**
+ * Fetch binary audio blob from Google Drive and return as an instant object URL
+ */
+export async function downloadDriveAudioBlobUrl(
+  accessToken: string,
+  fileId: string
+): Promise<{ blobUrl: string; name: string; mimeType: string; size: number }> {
+  if (!accessToken || accessToken === 'undefined' || accessToken === 'null') {
+    throw new Error('Google Drive authorization required. Please sign in with Google to grant Drive permissions.');
+  }
+
+  try {
+    const metadataRes = await fetch(`${DRIVE_API_BASE}/files/${fileId}?fields=id,name,mimeType,size`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const metadata = await metadataRes.json();
+
+    const contentRes = await fetch(`${DRIVE_API_BASE}/files/${fileId}?alt=media`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!contentRes.ok) {
+      throw new Error(`Failed to download audio file from Google Drive: ${contentRes.statusText}`);
+    }
+
+    const blob = await contentRes.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    return {
+      blobUrl,
+      name: metadata.name || 'drive_audio.mp3',
+      mimeType: metadata.mimeType || blob.type || 'audio/mpeg',
+      size: blob.size,
+    };
+  } catch (error: any) {
+    console.error('Google Drive audio download error:', error);
+    throw error;
+  }
+}
+
+/**
  * Fetch raw file content / data from Google Drive
  */
 export async function downloadDriveFile(
   accessToken: string,
   fileId: string
 ): Promise<{ data: string; mimeType: string }> {
+  if (!accessToken || accessToken === 'undefined' || accessToken === 'null') {
+    throw new Error('Google Drive authorization required. Please sign in with Google to grant Drive permissions.');
+  }
+
   try {
     const metadataRes = await fetch(`${DRIVE_API_BASE}/files/${fileId}?fields=id,name,mimeType`, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -139,6 +189,9 @@ export async function uploadFileToDrive(
   accessToken: string,
   options: DriveUploadOptions
 ): Promise<GoogleDriveFile> {
+  if (!accessToken || accessToken === 'undefined' || accessToken === 'null') {
+    throw new Error('Google Drive authorization required. Please sign in with Google to grant Drive permissions.');
+  }
   try {
     const metadata: any = {
       name: options.name,

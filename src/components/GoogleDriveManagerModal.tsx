@@ -18,12 +18,16 @@ import {
   X,
   ShieldCheck,
   Sparkles,
-  Lock
+  Lock,
+  Headphones,
+  Music,
+  Play
 } from 'lucide-react';
 import {
   listDriveFiles,
   uploadFileToDrive,
   downloadDriveFile,
+  downloadDriveAudioBlobUrl,
   deleteDriveFile,
   getOrCreateFolder,
   GoogleDriveFile,
@@ -41,6 +45,8 @@ interface GoogleDriveManagerModalProps {
   feedback: FeedbackItem[];
   broadcasts: BroadcastMessage[];
   onImportLogoToStudio?: (dataUrl: string, filename: string) => void;
+  onImportAudioToPodcast?: (blobUrl: string, filename: string, driveFile: GoogleDriveFile) => void;
+  initialFilter?: 'all' | 'images' | 'audio' | 'backups';
 }
 
 export const GoogleDriveManagerModal: React.FC<GoogleDriveManagerModalProps> = ({
@@ -51,6 +57,8 @@ export const GoogleDriveManagerModal: React.FC<GoogleDriveManagerModalProps> = (
   feedback,
   broadcasts,
   onImportLogoToStudio,
+  onImportAudioToPodcast,
+  initialFilter = 'all',
 }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(auth.currentUser);
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -58,15 +66,22 @@ export const GoogleDriveManagerModal: React.FC<GoogleDriveManagerModalProps> = (
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [driveFiles, setDriveFiles] = useState<GoogleDriveFile[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'images' | 'backups'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'images' | 'audio' | 'backups'>(initialFilter);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [recentSqlBackups, setRecentSqlBackups] = useState<any[]>([]);
   const [isSyncingSql, setIsSyncingSql] = useState(false);
+  const [loadingAudioFileId, setLoadingAudioFileId] = useState<string | null>(null);
 
   // Destructive Delete Confirmation State (Strict Workspace Policy)
   const [fileToDelete, setFileToDelete] = useState<GoogleDriveFile | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    if (initialFilter) {
+      setFilterType(initialFilter);
+    }
+  }, [initialFilter, isOpen]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -107,16 +122,25 @@ export const GoogleDriveManagerModal: React.FC<GoogleDriveManagerModalProps> = (
     try {
       const res = await listDriveFiles(tok, {
         imagesOnly: filterType === 'images',
+        audioOnly: filterType === 'audio',
         query: searchQuery || undefined,
-        pageSize: 40,
+        pageSize: 50,
       });
       setDriveFiles(res.files || []);
     } catch (err: any) {
-      console.error('Error fetching drive files:', err);
-      setStatusMessage({
-        type: 'error',
-        text: `Google Drive access error: ${err.message || 'Failed to load files'}. Please ensure Drive permissions are approved.`,
-      });
+      console.warn('Error fetching drive files:', err);
+      if (err?.message?.includes('invalid authentication credentials') || err?.message?.includes('authorization required')) {
+        setAccessToken(null);
+        setStatusMessage({
+          type: 'info',
+          text: 'Google Drive access token required. Please click "Connect Google Drive" above to grant permissions.',
+        });
+      } else {
+        setStatusMessage({
+          type: 'error',
+          text: `Google Drive access error: ${err.message || 'Failed to load files'}. Please ensure Drive permissions are approved.`,
+        });
+      }
     } finally {
       setIsLoadingFiles(false);
     }
@@ -250,6 +274,32 @@ export const GoogleDriveManagerModal: React.FC<GoogleDriveManagerModalProps> = (
       }
     } catch (err: any) {
       setStatusMessage({ type: 'error', text: `Failed to import image: ${err.message}` });
+    }
+  };
+
+  // Import audio file as Podcast Episode in Podcast Broadcast Studio
+  const handleImportToPodcastStudio = async (file: GoogleDriveFile) => {
+    if (!accessToken) return;
+    setLoadingAudioFileId(file.id);
+    try {
+      setStatusMessage({ type: 'info', text: `Streaming & loading audio '${file.name}' from Google Drive...` });
+      const result = await downloadDriveAudioBlobUrl(accessToken, file.id);
+      if (onImportAudioToPodcast) {
+        onImportAudioToPodcast(result.blobUrl, file.name, file);
+        setStatusMessage({
+          type: 'success',
+          text: `Loaded '${file.name}' (${Math.round(result.size / 1024)} KB) into Gemini Podcast Studio!`,
+        });
+        // Auto-close modal after brief delay so user can immediately view/edit/publish their podcast
+        setTimeout(() => {
+          onClose();
+        }, 1200);
+      }
+    } catch (err: any) {
+      console.error('Audio import failed:', err);
+      setStatusMessage({ type: 'error', text: `Failed to load podcast audio: ${err.message}` });
+    } finally {
+      setLoadingAudioFileId(null);
     }
   };
 
@@ -460,7 +510,7 @@ export const GoogleDriveManagerModal: React.FC<GoogleDriveManagerModalProps> = (
                 />
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <button
                   onClick={() => setFilterType('all')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
@@ -472,14 +522,24 @@ export const GoogleDriveManagerModal: React.FC<GoogleDriveManagerModalProps> = (
                   All Files
                 </button>
                 <button
+                  onClick={() => setFilterType('audio')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                    filterType === 'audio'
+                      ? 'bg-amber-600 text-white'
+                      : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Headphones className="w-3.5 h-3.5" /> Audio & Podcasts
+                </button>
+                <button
                   onClick={() => setFilterType('images')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
                     filterType === 'images'
                       ? 'bg-indigo-600 text-white'
                       : 'bg-slate-800 text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  <ImageIcon className="w-3 h-3" /> Images & Logos
+                  <ImageIcon className="w-3.5 h-3.5" /> Images & Logos
                 </button>
                 <button
                   onClick={() => fetchFiles()}
@@ -504,7 +564,7 @@ export const GoogleDriveManagerModal: React.FC<GoogleDriveManagerModalProps> = (
                 <div className="max-w-md mx-auto">
                   <h3 className="text-sm font-semibold text-slate-200">Google Drive Permission Required</h3>
                   <p className="text-xs text-slate-400 mt-1">
-                    Sign in with your Google Account above to browse your Drive storage, import custom app logos, or export backup archives.
+                    Sign in with your Google Account above to browse your Drive storage, import audio files (WAV, MP3, podcasts) into Gemini Podcast Studio, or export backup archives.
                   </p>
                 </div>
                 <button
@@ -519,14 +579,18 @@ export const GoogleDriveManagerModal: React.FC<GoogleDriveManagerModalProps> = (
                 <FolderPlus className="w-8 h-8 mx-auto text-slate-500" />
                 <p className="text-xs text-slate-300 font-medium">No files found matching your criteria</p>
                 <p className="text-[11px] text-slate-500">
-                  Click 'Backup Snapshot to Drive' to generate an ecosystem JSON backup in your Google Drive.
+                  {filterType === 'audio' 
+                    ? 'No audio files (.wav, .mp3, .m4a, .flac) found in your Google Drive.' 
+                    : "Click 'Backup Snapshot to Drive' to generate an ecosystem JSON backup in your Google Drive."}
                 </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1">
                 {driveFiles.map((file) => {
                   const isImage = file.mimeType?.startsWith('image/') || file.name.match(/\.(png|jpg|jpeg|svg|webp)$/i);
+                  const isAudio = file.mimeType?.startsWith('audio/') || file.name.match(/\.(wav|mp3|m4a|ogg|flac|aac)$/i);
                   const isJsonBackup = file.name.endsWith('.json') || file.name.includes('HUMAN_');
+                  const isImportingThisAudio = loadingAudioFileId === file.id;
 
                   return (
                     <div
@@ -539,6 +603,8 @@ export const GoogleDriveManagerModal: React.FC<GoogleDriveManagerModalProps> = (
                             <img src={file.thumbnailLink} alt={file.name} className="w-full h-full object-cover" />
                           ) : isImage ? (
                             <ImageIcon className="w-5 h-5 text-indigo-400" />
+                          ) : isAudio ? (
+                            <Music className="w-5 h-5 text-amber-400" />
                           ) : (
                             <FileText className="w-5 h-5 text-amber-400" />
                           )}
@@ -547,9 +613,10 @@ export const GoogleDriveManagerModal: React.FC<GoogleDriveManagerModalProps> = (
                           <h4 className="text-xs font-semibold text-slate-200 truncate" title={file.name}>
                             {file.name}
                           </h4>
-                          <p className="text-[10px] text-slate-400 mt-0.5 truncate">
-                            {file.modifiedTime ? new Date(file.modifiedTime).toLocaleDateString() : 'Drive file'}
-                            {file.size && ` • ${Math.round(parseInt(file.size, 10) / 1024)} KB`}
+                          <p className="text-[10px] text-slate-400 mt-0.5 truncate flex items-center gap-1.5">
+                            {isAudio && <span className="text-amber-400 font-semibold uppercase">AUDIO</span>}
+                            <span>{file.modifiedTime ? new Date(file.modifiedTime).toLocaleDateString() : 'Drive file'}</span>
+                            {file.size && <span>• {Math.round(parseInt(file.size, 10) / 1024)} KB</span>}
                           </p>
                         </div>
                       </div>
@@ -557,6 +624,25 @@ export const GoogleDriveManagerModal: React.FC<GoogleDriveManagerModalProps> = (
                       {/* Action buttons */}
                       <div className="flex items-center justify-between pt-2 border-t border-slate-700/50 text-xs">
                         <div className="flex items-center gap-1.5">
+                          {isAudio && (
+                            <button
+                              onClick={() => handleImportToPodcastStudio(file)}
+                              disabled={isImportingThisAudio}
+                              className="px-2.5 py-1 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-[11px] font-medium transition-colors flex items-center gap-1 disabled:opacity-50"
+                            >
+                              {isImportingThisAudio ? (
+                                <>
+                                  <RefreshCw className="w-3 h-3 animate-spin" />
+                                  Loading...
+                                </>
+                              ) : (
+                                <>
+                                  <Play className="w-3 h-3" />
+                                  Use as Podcast Audio
+                                </>
+                              )}
+                            </button>
+                          )}
                           {isImage && (
                             <button
                               onClick={() => handleImportToLogoStudio(file)}
