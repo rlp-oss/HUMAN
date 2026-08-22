@@ -18,27 +18,48 @@ service cloud.firestore {
 
     // Beta Testers collection
     match /testers/{testerId} {
-      allow read, write: if isValidId(testerId);
+      allow list: if true;
+      allow get: if isValidId(testerId);
+      allow create: if isValidId(testerId);
+      allow update: if isValidId(testerId);
+      allow delete: if isValidId(testerId);
     }
 
     // Feedbacks collection
     match /feedbacks/{feedbackId} {
-      allow read, write: if isValidId(feedbackId);
+      allow list: if true;
+      allow get: if isValidId(feedbackId);
+      allow create: if isValidId(feedbackId);
+      allow update: if isValidId(feedbackId);
+      allow delete: if isValidId(feedbackId);
     }
 
     // Broadcasts collection
     match /broadcasts/{broadcastId} {
-      allow read, write: if isValidId(broadcastId);
+      allow list: if true;
+      allow get: if isValidId(broadcastId);
+      allow create: if isValidId(broadcastId);
+      allow update: if isValidId(broadcastId);
+      allow delete: if isValidId(broadcastId);
     }
 
     // Creator Claims collection
     match /creator_claims/{claimId} {
-      allow read, write: if isValidId(claimId);
+      allow list: if true;
+      allow get: if isValidId(claimId);
+      allow create: if isValidId(claimId);
+      allow update: if isValidId(claimId);
+      allow delete: if isValidId(claimId);
     }
 
     // App Badges & C2PA Manifest records
     match /app_badges/{badgeId} {
-      allow read, write: if isValidId(badgeId);
+      allow list: if true;
+      allow get: if isValidId(badgeId);
+      allow create: if isValidId(badgeId);
+      allow update: if isValidId(badgeId);
+      allow delete: if isValidId(badgeId);
     }
   }
 }
+

@@ -9,6 +9,26 @@ import { FeedbackPortal } from './components/FeedbackPortal';
 import { SynthesisSimulator } from './components/SynthesisSimulator';
 import { StripeSandboxModal } from './components/StripeSandboxModal';
 import { CreatorPayoutDashboard } from './components/CreatorPayoutDashboard';
+import { StakeholderPersonas } from './components/StakeholderPersonas';
+import { PrivacyPolicyViewer } from './components/PrivacyPolicyViewer';
+import { CopyrightOwnerWebsite } from './components/CopyrightOwnerWebsite';
+import { CustomBadgeModal } from './components/CustomBadgeModal';
+import { FooterTrustBadge } from './components/UninvasiveTrustBadge';
+import { HumanInitiativeMaster } from './components/HumanInitiativeMaster';
+import { MerchantStorePortal } from './components/MerchantStorePortal';
+import { DeveloperEmbedKit } from './components/DeveloperEmbedKit';
+import { StripeIntegrationGuide } from './components/StripeIntegrationGuide';
+import { GlobalFundMacroAndBlockchainArchitecture } from './components/GlobalFundMacroAndBlockchainArchitecture';
+import { HumanInitiativeRoadmapSite } from './components/HumanInitiativeRoadmapSite';
+import { PublicMissionWebsite } from './components/PublicMissionWebsite';
+import { AppMediaHub } from './components/AppMediaHub';
+import { TechnicalAiAssessmentPanel } from './components/TechnicalAiAssessmentPanel';
+import { CryptoValuationOptimizer } from './components/CryptoValuationOptimizer';
+import { SideMenuTaskbar } from './components/SideMenuTaskbar';
+import { UniversalThemeHubModal } from './components/UniversalThemeHubModal';
+import { MasterAdminColorStudio } from './components/MasterAdminColorStudio';
+import { GoogleDriveManagerModal } from './components/GoogleDriveManagerModal';
+import { ThemeProvider } from './context/ThemeContext';
 import { 
   Tester, 
   CopyrightClaim, 
@@ -16,7 +36,8 @@ import {
   BroadcastMessage, 
   RoyaltyStreamEvent, 
   RoyaltyPoolSummary,
-  AppName 
+  AppName,
+  CopyrightPortalSubPage
 } from './types';
 import { 
   TesterService, 
@@ -41,8 +62,48 @@ import {
 } from 'lucide-react';
 import { HumanLogo } from './components/HumanLogo';
 
-export default function App() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('testers');
+function AppContent() {
+  const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
+    const path = window.location.pathname;
+    const hash = window.location.hash.replace('#', '');
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+
+    if (tabParam === 'mission-home' || tabParam === 'mission' || hash === 'mission-home' || hash === 'mission' || path.includes('/mission')) {
+      return 'mission-home';
+    }
+
+    if (tabParam === 'roadmap-site' || tabParam === 'roadmap' || hash === 'roadmap-site' || hash === 'roadmap' || path.includes('/roadmap') || path.includes('/evolution-roadmap') || path.includes('/master-plan')) {
+      return 'roadmap-site';
+    }
+
+    if (tabParam === 'media-hub' || tabParam === 'podcast' || tabParam === 'media' || hash === 'media-hub' || hash === 'podcast' || hash === 'media' || path.includes('/media') || path.includes('/podcast')) {
+      return 'media-hub';
+    }
+
+    if (
+      path.includes('/copyright-owner') || 
+      path.includes('/royalties') || 
+      path.includes('/transparency') || 
+      path.includes('/portal') || 
+      hash === 'portal' || 
+      hash === 'royalties' || 
+      hash === 'transparency'
+    ) {
+      return 'portal';
+    }
+    if (hash === 'technical-ai' || path.includes('/technical-ai') || tabParam === 'technical-ai') return 'technical-ai';
+    if (hash === 'crypto-valuation' || hash === 'crypto' || path.includes('/crypto') || tabParam === 'crypto-valuation') return 'crypto-valuation';
+    if (hash === 'merchants' || path.includes('/merchants')) return 'merchants';
+    if (hash === 'developer-embed' || hash === 'developers' || path.includes('/developers') || path.includes('/embed')) return 'developer-embed';
+    if (hash === 'testers' || path.includes('/testers')) return 'testers';
+    if (hash === 'claims' || path.includes('/claims')) return 'claims';
+    if (hash === 'payouts' || path.includes('/payouts')) return 'payouts';
+    if (hash === 'global-fund' || path.includes('/global-fund')) return 'global-fund';
+    if (hash === 'initiative' || path.includes('/initiative')) return 'initiative';
+    return 'mission-home';
+  });
+
   const [testers, setTesters] = useState<Tester[]>([]);
   const [claims, setClaims] = useState<CopyrightClaim[]>([]);
   const [feedbackList, setFeedbackList] = useState<FeedbackItem[]>([]);
@@ -60,12 +121,55 @@ export default function App() {
 
   const [isOnboardModalOpen, setIsOnboardModalOpen] = useState(false);
   const [isStripeModalOpen, setIsStripeModalOpen] = useState(false);
+  const [isCustomBadgeModalOpen, setIsCustomBadgeModalOpen] = useState(false);
+  const [isThemeHubModalOpen, setIsThemeHubModalOpen] = useState(false);
+  const [isMasterColorStudioOpen, setIsMasterColorStudioOpen] = useState(false);
+  const [isGoogleDriveModalOpen, setIsGoogleDriveModalOpen] = useState(false);
+  const [masterStudioInitialTab, setMasterStudioInitialTab] = useState<'colors' | 'logos' | 'api'>('colors');
   const [broadcastInitialApp, setBroadcastInitialApp] = useState<AppName | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [isBadgeActive, setIsBadgeActive] = useState<boolean>(() => {
     return localStorage.getItem('human_badge_activated') === 'true' && 
            localStorage.getItem('human_badge_linked') === 'true';
   });
+
+  // URL Popstate Listener
+  useEffect(() => {
+    const handlePop = () => {
+      const path = window.location.pathname;
+      const hash = window.location.hash.replace('#', '');
+      if (
+        path.includes('/copyright-owner') || 
+        path.includes('/royalties') || 
+        path.includes('/transparency') || 
+        path.includes('/portal') || 
+        hash === 'portal' || 
+        hash === 'royalties' || 
+        hash === 'transparency'
+      ) {
+        setActiveTab('portal');
+      }
+    };
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, []);
+
+  const handleTabChange = (tab: ActiveTab) => {
+    setActiveTab(tab);
+    if (tab === 'portal') {
+      try {
+        window.history.pushState({}, '', '/copyright-owner');
+      } catch {
+        window.location.hash = 'portal';
+      }
+    } else {
+      try {
+        window.history.pushState({}, '', '/');
+      } catch {
+        window.location.hash = tab;
+      }
+    }
+  };
 
   const loadAllData = useCallback(async () => {
     try {
@@ -121,11 +225,14 @@ export default function App() {
       {/* Navigation Header */}
       <Navbar
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        onSelectTab={handleTabChange}
         totalStreamedUsd={summary.total_streamed_usd}
         isBadgeActive={isBadgeActive}
         onOpenOnboardModal={() => setIsOnboardModalOpen(true)}
         onOpenStripeModal={() => setIsStripeModalOpen(true)}
+        onOpenCustomBadgeModal={() => setIsCustomBadgeModalOpen(true)}
+        onOpenColorStudio={() => setIsMasterColorStudioOpen(true)}
+        onOpenGoogleDriveModal={() => setIsGoogleDriveModalOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -134,11 +241,83 @@ export default function App() {
           <div className="flex flex-col items-center justify-center py-24 space-y-3">
             <RefreshCw className="w-8 h-8 text-[#5A5A40] animate-spin" />
             <div className="text-xs font-mono text-[#6A655C]">
-              Connecting to ReForgeOS Micro-Royalty Ledger...
+              Connecting to The H.U.M.A.N. Initiative Ledger (Powering Ethical AI apps, And Paying the People)...
             </div>
           </div>
         ) : (
           <div className="space-y-8 animate-fade-in">
+            {activeTab === 'mission-home' && (
+              <PublicMissionWebsite
+                onNavigateToRoadmap={() => handleTabChange('roadmap-site')}
+                onNavigateToInitiative={() => handleTabChange('initiative')}
+                onNavigateToFund={() => handleTabChange('global-fund')}
+                onNavigateToCreators={() => handleTabChange('portal')}
+                onNavigateToDevelopers={() => handleTabChange('developer-embed')}
+              />
+            )}
+
+            {activeTab === 'roadmap-site' && (
+              <HumanInitiativeRoadmapSite
+                onNavigateToTab={(tab) => handleTabChange(tab as ActiveTab)}
+              />
+            )}
+
+            {activeTab === 'media-hub' && (
+              <AppMediaHub
+                onNavigateToTab={(tab) => handleTabChange(tab as ActiveTab)}
+                onOpenOnboardModal={() => setIsOnboardModalOpen(true)}
+              />
+            )}
+
+            {activeTab === 'technical-ai' && (
+              <TechnicalAiAssessmentPanel />
+            )}
+
+            {activeTab === 'crypto-valuation' && (
+              <CryptoValuationOptimizer />
+            )}
+
+            {activeTab === 'global-fund' && (
+              <GlobalFundMacroAndBlockchainArchitecture />
+            )}
+
+            {activeTab === 'initiative' && (
+              <HumanInitiativeMaster
+                onNavigateToMerchantPortal={() => handleTabChange('merchants')}
+                onNavigateToCreators={() => handleTabChange('portal')}
+                onNavigateToDeveloperEmbed={() => handleTabChange('developer-embed')}
+                onNavigateToRoadmapSite={() => handleTabChange('roadmap-site')}
+              />
+            )}
+
+            {activeTab === 'developer-embed' && (
+              <DeveloperEmbedKit
+                onNavigateToInitiative={() => handleTabChange('initiative')}
+                onNavigateToMerchantPortal={() => handleTabChange('merchants')}
+                onNavigateToStripeGuide={() => handleTabChange('stripe-guide')}
+              />
+            )}
+
+            {activeTab === 'stripe-guide' && (
+              <StripeIntegrationGuide />
+            )}
+
+            {activeTab === 'merchants' && (
+              <MerchantStorePortal
+                onNavigateToInitiative={() => handleTabChange('initiative')}
+              />
+            )}
+
+            {activeTab === 'portal' && (
+              <CopyrightOwnerWebsite
+                claims={claims}
+                royaltyEvents={royaltyEvents}
+                onRefreshAll={loadAllData}
+                onSwitchToAdminTesterConsole={() => handleTabChange('testers')}
+                onOpenBadgeModal={() => setIsCustomBadgeModalOpen(true)}
+              />
+            )}
+
             {activeTab === 'testers' && (
               <TesterConsole
                 testers={testers}
@@ -165,11 +344,18 @@ export default function App() {
               />
             )}
 
+            {activeTab === 'personas' && (
+              <StakeholderPersonas
+                isBadgeActive={isBadgeActive}
+              />
+            )}
+
             {activeTab === 'badge' && (
               <HumanBadgeWidget 
                 isLinked={isBadgeActive}
                 isActivated={isBadgeActive}
                 onToggleActivation={(linked, activated) => setIsBadgeActive(linked && activated)}
+                onNavigateToCopyright={() => handleTabChange('portal')}
               />
             )}
 
@@ -196,19 +382,46 @@ export default function App() {
                 onRefresh={loadAllData}
               />
             )}
+
+            {activeTab === 'privacy' && (
+              <PrivacyPolicyViewer
+                onNavigateToTab={setActiveTab}
+              />
+            )}
           </div>
         )}
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-[#E5E0D8] bg-[#F2ECE4] py-6 px-4 text-xs text-[#6A655C] font-mono">
-        <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-center justify-between gap-4">
+      <footer className="relative z-10 border-t border-[#E5E0D8] bg-[#F2ECE4] py-8 px-4 text-xs text-[#6A655C] font-mono space-y-6">
+        <div className="mx-auto max-w-7xl">
+          {/* Footer Verified Ethical Trust Badge */}
+          <FooterTrustBadge 
+            onOpenBadgeModal={() => setIsCustomBadgeModalOpen(true)}
+            onOpenPrivacyModal={() => setActiveTab('privacy')}
+            onNavigateToCopyright={() => handleTabChange('portal')}
+          />
+        </div>
+
+        <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-center justify-between gap-4 pt-2 border-t border-[#E5E0D8]/60">
           <div className="flex items-center gap-3">
-            <HumanLogo size="sm" showText={true} />
+            <button 
+              onClick={() => handleTabChange('portal')}
+              className="text-left cursor-pointer hover:opacity-85 transition-opacity"
+              title="View Copyright Owner & Royalty Landing Page"
+            >
+              <HumanLogo size="sm" showText={true} />
+            </button>
             <span className="text-[#D4CCC1] hidden sm:inline">|</span>
             <span className="text-[#6A655C]">
-              Universal Micro-Royalty Protocol & Tester Console
+              Universal Micro-Royalty Initiative & Tester Console
             </span>
+            <button
+              onClick={() => setActiveTab('privacy')}
+              className="text-[#5A5A40] hover:text-[#2D2926] hover:underline font-semibold ml-2 cursor-pointer"
+            >
+              Privacy Policy & PDF
+            </button>
           </div>
 
           <div className="flex items-center gap-4 text-[#5A5A40] flex-wrap">
@@ -217,7 +430,7 @@ export default function App() {
               Firestore: {firestoreConnected === true ? <span className="text-[#3D6E50] font-semibold">Active & Synced</span> : firestoreConnected === false ? <span className="text-[#6A655C]">Local Cache / Ready</span> : <span className="text-[#6A655C]">Connecting...</span>}
             </span>
             <span>•</span>
-            <span>Powered by <strong className="text-[#2D2926]">ReForgeOS</strong></span>
+            <span className="font-medium text-[#2D2926]">Powering Ethical AI apps, And Paying the People</span>
             <span>•</span>
             <span className="text-[#5A5A40]">Strict OSPO 0-Copyleft Sandbox</span>
             <span>•</span>
@@ -239,6 +452,65 @@ export default function App() {
         isOpen={isStripeModalOpen}
         onClose={() => setIsStripeModalOpen(false)}
       />
+
+      <CustomBadgeModal
+        isOpen={isCustomBadgeModalOpen}
+        onClose={() => setIsCustomBadgeModalOpen(false)}
+        onApplyBadge={() => {
+          loadAllData();
+        }}
+      />
+
+      <UniversalThemeHubModal
+        isOpen={isThemeHubModalOpen}
+        onClose={() => setIsThemeHubModalOpen(false)}
+      />
+
+      <MasterAdminColorStudio
+        isOpen={isMasterColorStudioOpen}
+        initialTab={masterStudioInitialTab}
+        onClose={() => setIsMasterColorStudioOpen(false)}
+      />
+
+      <GoogleDriveManagerModal
+        isOpen={isGoogleDriveModalOpen}
+        onClose={() => setIsGoogleDriveModalOpen(false)}
+        testers={testers}
+        claims={claims}
+        feedback={feedbackList}
+        broadcasts={broadcasts}
+        onImportLogoToStudio={(dataUrl, filename) => {
+          setMasterStudioInitialTab('logos');
+          setIsMasterColorStudioOpen(true);
+        }}
+      />
+
+      {/* Hideable Side Menu Tool and Task Bar with Light/Dark Settings & Python SDK Console */}
+      <SideMenuTaskbar
+        onNavigateTab={(tab) => handleTabChange(tab)}
+        onOpenStripeModal={() => setIsStripeModalOpen(true)}
+        onOpenBadgeModal={() => setIsCustomBadgeModalOpen(true)}
+        onOpenOnboardModal={() => setIsOnboardModalOpen(true)}
+        onOpenUniversalThemeHub={() => setIsThemeHubModalOpen(true)}
+        onOpenMasterColorStudio={() => {
+          setMasterStudioInitialTab('colors');
+          setIsMasterColorStudioOpen(true);
+        }}
+        onOpenMasterLogoStudio={() => {
+          setMasterStudioInitialTab('logos');
+          setIsMasterColorStudioOpen(true);
+        }}
+        onOpenGoogleDriveModal={() => setIsGoogleDriveModalOpen(true)}
+      />
     </div>
   );
 }
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
+  );
+}
+

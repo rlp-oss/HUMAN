@@ -16,7 +16,9 @@ import {
   ChevronRight, 
   Sparkles,
   Layers,
-  Send
+  Send,
+  Download,
+  FileSpreadsheet
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Tester, AppName, SubscriptionStatus } from '../types';
@@ -43,7 +45,7 @@ export const TesterConsole: React.FC<TesterConsoleProps> = ({
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
   const [emailModalTester, setEmailModalTester] = useState<Tester | null>(null);
   const [grantAccessModalTester, setGrantAccessModalTester] = useState<Tester | null>(null);
-  const [selectedAppToGrant, setSelectedAppToGrant] = useState<AppName>('ShareShop Pro');
+  const [selectedAppToGrant, setSelectedAppToGrant] = useState<AppName>('Tome Crafter');
 
   const showToast = (text: string, type: 'success' | 'info' | 'error' = 'success') => {
     setToastMessage({ text, type });
@@ -87,6 +89,70 @@ export const TesterConsole: React.FC<TesterConsoleProps> = ({
     setEmailModalTester(tester);
   };
 
+  const handleExportCSV = (cohortOnly: boolean = false) => {
+    const exportData = cohortOnly ? filteredTesters : testers;
+    if (exportData.length === 0) {
+      showToast('No testers found to export.', 'info');
+      return;
+    }
+
+    const headers = [
+      'Tester ID',
+      'Full Name',
+      'Email Address',
+      'GitHub Handle',
+      'Role',
+      'App Access List',
+      'Subscription Status',
+      'Stripe Account ID',
+      'Total Royalties Received (USD)',
+      'Joined Date',
+      'Last Active',
+      'Welcome Email Sent',
+      'Notes'
+    ];
+
+    const escapeCSV = (val: any): string => {
+      if (val === null || val === undefined) return '""';
+      const stringVal = String(val).replace(/"/g, '""');
+      return `"${stringVal}"`;
+    };
+
+    const rows = exportData.map(t => [
+      escapeCSV(t.id),
+      escapeCSV(t.name),
+      escapeCSV(t.email),
+      escapeCSV(t.github_handle || ''),
+      escapeCSV(t.role),
+      escapeCSV(t.app_access_list ? t.app_access_list.join('; ') : ''),
+      escapeCSV(t.current_subscription_status),
+      escapeCSV(t.stripe_account_id || ''),
+      escapeCSV(typeof t.total_royalties_received === 'number' ? t.total_royalties_received.toFixed(2) : '0.00'),
+      escapeCSV(t.joined_at || ''),
+      escapeCSV(t.last_active || ''),
+      escapeCSV(t.email_welcomed ? 'Yes' : 'No'),
+      escapeCSV(t.notes || '')
+    ].join(','));
+
+    const csvString = [headers.join(','), ...rows].join('\r\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const dateStr = new Date().toISOString().split('T')[0];
+    const cohortSlug = cohortOnly && selectedAppFilter !== 'All' 
+      ? `${selectedAppFilter.toLowerCase().replace(/\s+/g, '_')}_` 
+      : '';
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `human_testers_${cohortSlug}${dateStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showToast(`Exported ${exportData.length} tester record(s) to CSV`, 'success');
+  };
+
   // Filter logic
   const filteredTesters = testers.filter(tester => {
     const matchesSearch = 
@@ -106,7 +172,7 @@ export const TesterConsole: React.FC<TesterConsoleProps> = ({
     return matchesSearch && matchesApp && matchesRole;
   });
 
-  const allApps: AppName[] = ['ShareShop Pro', 'Lyria Studio', 'CodeSynthesizer', 'ReForgeOS Engine', 'ArtisanPay API'];
+  const allApps: AppName[] = ['Tome Crafter', 'RLM Pro Studio', 'ForgeOS App Builder', 'RL Easy Flow'];
 
   return (
     <div className="space-y-6">
@@ -138,7 +204,7 @@ export const TesterConsole: React.FC<TesterConsoleProps> = ({
           <div className="text-2xl font-bold text-[#2D2926]">{testers.length} Active</div>
           <div className="text-[11px] text-[#6A655C] mt-1 flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-[#5A5A40] inline-block"></span>
-            100% verified via ReForgeOS
+            Powering Ethical AI apps, And Paying the People
           </div>
         </div>
 
@@ -160,9 +226,9 @@ export const TesterConsole: React.FC<TesterConsoleProps> = ({
             <span>APP COHORTS</span>
             <Layers className="w-4 h-4 text-[#5A5A40]" />
           </div>
-          <div className="text-2xl font-bold text-[#2D2926]">5 Software Suites</div>
+          <div className="text-2xl font-bold text-[#2D2926]">4 Software Suites</div>
           <div className="text-[11px] text-[#6A655C] mt-1">
-            ShareShop Pro, Lyria Studio, etc.
+            Tome Crafter, RLM Pro, ForgeOS, Easy Flow
           </div>
         </div>
 
@@ -226,7 +292,7 @@ export const TesterConsole: React.FC<TesterConsoleProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+        <div className="flex items-center gap-2 w-full md:w-auto justify-end flex-wrap">
           {selectedAppFilter !== 'All' && onOpenBroadcastWithCohort && (
             <button
               onClick={() => onOpenBroadcastWithCohort(selectedAppFilter as AppName)}
@@ -234,6 +300,27 @@ export const TesterConsole: React.FC<TesterConsoleProps> = ({
             >
               <Send className="w-3.5 h-3.5 text-[#5A5A40]" />
               <span>Broadcast to {selectedAppFilter}</span>
+            </button>
+          )}
+
+          {/* Export CSV Buttons */}
+          <button
+            onClick={() => handleExportCSV(false)}
+            title="Export all testers as a CSV file"
+            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-[#FFFFFF] hover:bg-[#F9F7F2] text-[#2D2926] border border-[#DCD5CA] shadow-2xs transition-all active:scale-95 cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5 text-[#5A5A40]" />
+            <span>Export CSV</span>
+          </button>
+
+          {filteredTesters.length < testers.length && (
+            <button
+              onClick={() => handleExportCSV(true)}
+              title="Export only currently filtered testers as CSV"
+              className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-[#F5F1EB] hover:bg-[#EBE5DC] text-[#5A5A40] border border-[#DCD5CA] shadow-2xs transition-all active:scale-95 cursor-pointer"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-[#5A5A40]" />
+              <span>Export Filtered ({filteredTesters.length})</span>
             </button>
           )}
 
@@ -422,6 +509,35 @@ export const TesterConsole: React.FC<TesterConsoleProps> = ({
             </tbody>
           </table>
         </div>
+
+        {/* Table Footer with Summary & CSV Download Link */}
+        <div className="px-4 py-3 bg-[#FAF8F5] border-t border-[#E5E0D8] flex flex-wrap items-center justify-between text-xs text-[#6A655C] gap-3">
+          <div>
+            Showing <strong className="text-[#2D2926] font-semibold">{filteredTesters.length}</strong> of <strong className="text-[#2D2926] font-semibold">{testers.length}</strong> testers
+            {selectedAppFilter !== 'All' && <span> in <span className="font-mono text-[#5A5A40]">{selectedAppFilter}</span></span>}
+            {selectedRoleFilter !== 'All' && <span> • <span className="font-mono text-[#5A5A40]">{selectedRoleFilter}</span></span>}
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => handleExportCSV(false)}
+              className="inline-flex items-center gap-1.5 text-[#5A5A40] hover:text-[#2D2926] font-medium transition-colors cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5 text-[#5A5A40]" />
+              <span>Download CSV (All {testers.length})</span>
+            </button>
+
+            {filteredTesters.length < testers.length && filteredTesters.length > 0 && (
+              <button
+                onClick={() => handleExportCSV(true)}
+                className="inline-flex items-center gap-1.5 text-[#D67D5C] hover:text-[#C4704F] font-medium transition-colors cursor-pointer"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-[#D67D5C]" />
+                <span>Download Filtered ({filteredTesters.length})</span>
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Grant Access Modal */}
@@ -461,7 +577,7 @@ export const TesterConsole: React.FC<TesterConsoleProps> = ({
 
               <div className="rounded-lg bg-[#F5F1EB] p-3 border border-[#E5E0D8] text-xs font-mono text-[#5A5A40]">
                 <span className="text-[#2D2926] font-bold block mb-1">Security & Webhook Automation:</span>
-                • Generates cryptographically signed ReForgeOS License Key<br/>
+                • Generates cryptographically signed H.U.M.A.N. Protocol License Key<br/>
                 • Sets up Stripe Connect micro-patronage routing<br/>
                 • Dispatches welcome credential email
               </div>
@@ -508,14 +624,14 @@ export const TesterConsole: React.FC<TesterConsoleProps> = ({
             <div className="rounded-xl border border-[#E5E0D8] bg-[#FAF8F5] p-5 font-mono text-xs text-[#2D2926] space-y-3">
               <div className="border-b border-[#E5E0D8] pb-2 space-y-1 text-[#6A655C]">
                 <div><strong>To:</strong> {emailModalTester.name} &lt;{emailModalTester.email}&gt;</div>
-                <div><strong>From:</strong> H.U.M.A.N. & ReForgeOS Onboarding &lt;access@human-network.org&gt;</div>
-                <div><strong>Subject:</strong> Welcome to the H.U.M.A.N. Ethical AI Builder — Your Credentials & Access Keys</div>
+                <div><strong>From:</strong> H.U.M.A.N. Protocol Onboarding &lt;access@human-network.org&gt;</div>
+                <div><strong>Subject:</strong> Welcome to H.U.M.A.N. — Powering Ethical AI apps, And Paying the People</div>
               </div>
 
               <div className="space-y-3 font-sans text-sm text-[#2D2926]">
                 <p>Hello <strong>{emailModalTester.name}</strong>,</p>
                 <p className="text-[#5A5A40] leading-relaxed">
-                  You have been successfully registered as a <strong>{emailModalTester.role}</strong> on the H.U.M.A.N. & ReForgeOS beta testing network. Every time AI synthesizes code, music, art, or content utilizing open-source craft, micro-royalties are streamed directly to your Stripe Connect account.
+                  You have been successfully registered as a <strong>{emailModalTester.role}</strong> on the H.U.M.A.N. network (Powering Ethical AI apps, And Paying the People). Every time AI synthesizes code, music, art, or content utilizing open-source craft, 40% subscription royalties and micro-payments are streamed directly to your Stripe Connect account.
                 </p>
                 
                 <div className="rounded-lg bg-[#FFFFFF] p-3.5 border border-[#E5E0D8] font-mono text-xs text-[#2D2926] space-y-1.5 shadow-2xs">
@@ -672,6 +788,43 @@ export const TesterConsole: React.FC<TesterConsoleProps> = ({
               >
                 <Mail className="w-3.5 h-3.5" />
                 <span>Resend Credentials Email</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  const headers = ['Tester ID', 'Full Name', 'Email Address', 'GitHub Handle', 'Role', 'App Access List', 'Subscription Status', 'Stripe Account ID', 'Total Royalties Received (USD)', 'Joined Date', 'Last Active', 'Welcome Email Sent', 'Notes'];
+                  const escapeCSV = (val: any) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+                  const row = [
+                    escapeCSV(selectedTester.id),
+                    escapeCSV(selectedTester.name),
+                    escapeCSV(selectedTester.email),
+                    escapeCSV(selectedTester.github_handle || ''),
+                    escapeCSV(selectedTester.role),
+                    escapeCSV(selectedTester.app_access_list ? selectedTester.app_access_list.join('; ') : ''),
+                    escapeCSV(selectedTester.current_subscription_status),
+                    escapeCSV(selectedTester.stripe_account_id || ''),
+                    escapeCSV(typeof selectedTester.total_royalties_received === 'number' ? selectedTester.total_royalties_received.toFixed(2) : '0.00'),
+                    escapeCSV(selectedTester.joined_at || ''),
+                    escapeCSV(selectedTester.last_active || ''),
+                    escapeCSV(selectedTester.email_welcomed ? 'Yes' : 'No'),
+                    escapeCSV(selectedTester.notes || '')
+                  ].join(',');
+                  const csv = [headers.join(','), row].join('\r\n');
+                  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `tester_${selectedTester.name.toLowerCase().replace(/\s+/g, '_')}_record.csv`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                  showToast(`Exported ${selectedTester.name}'s record to CSV`, 'success');
+                }}
+                className="w-full py-2 rounded-lg text-xs font-medium text-[#5A5A40] hover:text-[#2D2926] hover:bg-[#F5F1EB] border border-[#DCD5CA] flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5 text-[#5A5A40]" />
+                <span>Export This Tester (CSV)</span>
               </button>
             </div>
           </div>

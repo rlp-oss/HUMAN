@@ -39,11 +39,10 @@ export const BroadcastConsole: React.FC<BroadcastConsoleProps> = ({
 
   const allApps: Array<AppName | 'All Apps'> = [
     'All Apps',
-    'ShareShop Pro',
-    'Lyria Studio',
-    'CodeSynthesizer',
-    'ReForgeOS Engine',
-    'ArtisanPay API',
+    'Tome Crafter',
+    'RLM Pro Studio',
+    'ForgeOS App Builder',
+    'RL Easy Flow',
   ];
 
   const targetRecipients = targetApp === 'All Apps'
@@ -67,7 +66,7 @@ export const BroadcastConsole: React.FC<BroadcastConsoleProps> = ({
         appTarget: targetApp,
         topic: topic.trim(),
         tone,
-        extraContext: 'ReForgeOS micro-royalty sandbox and 5-stage testing guardrails update.',
+        extraContext: 'H.U.M.A.N. Protocol: Powering Ethical AI apps, And Paying the People (40% subscription royalty pool).',
       });
 
       if (draft.subject) setSubject(draft.subject);

@@ -27,19 +27,30 @@ import {
   RefreshCw
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { HumanLogo } from './HumanLogo';
+import { 
+  HumanLogo, 
+  TomeCrafterLogoIcon, 
+  RlmProStudioLogoIcon, 
+  ForgeOsLogoIcon, 
+  RlEasyFlowLogoIcon, 
+  EmeraldHumanNetworkLogoIcon, 
+  MasterHumanBadgeIcon 
+} from './HumanLogo';
 import { ComplianceAuditSection } from './ComplianceAuditSection';
+import { AppIntegrationsHealthMatrix } from './AppIntegrationsHealthMatrix';
 
 interface HumanBadgeWidgetProps {
   isLinked?: boolean;
   isActivated?: boolean;
   onToggleActivation?: (linked: boolean, activated: boolean) => void;
+  onNavigateToCopyright?: () => void;
 }
 
 export const HumanBadgeWidget: React.FC<HumanBadgeWidgetProps> = ({
   isLinked: propIsLinked,
   isActivated: propIsActivated,
-  onToggleActivation
+  onToggleActivation,
+  onNavigateToCopyright
 }) => {
   // Persistence in localStorage so user's choice persists across tabs
   const [isLinked, setIsLinked] = useState<boolean>(() => {
@@ -67,6 +78,37 @@ export const HumanBadgeWidget: React.FC<HumanBadgeWidgetProps> = ({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showReplenishModal, setShowReplenishModal] = useState(false);
   const [replenishAmount, setReplenishAmount] = useState('100');
+
+  const [customBadge, setCustomBadge] = useState<any>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('human_active_custom_badge');
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) { console.error(e); }
+      }
+    }
+    return null;
+  });
+
+  const [customLogo, setCustomLogo] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('human_active_custom_logo');
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    const handleStorage = () => {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('human_active_custom_badge');
+        if (saved) {
+          try { setCustomBadge(JSON.parse(saved)); } catch {}
+        }
+        setCustomLogo(localStorage.getItem('human_active_custom_logo'));
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   // C2PA Manifest & Certification State
   const [c2paManifestHash, setC2paManifestHash] = useState<string>(() => {
@@ -120,6 +162,28 @@ export const HumanBadgeWidget: React.FC<HumanBadgeWidgetProps> = ({
     navigator.clipboard.writeText(code);
     setCopiedType(type);
     setTimeout(() => setCopiedType(null), 3000);
+  };
+
+  const handleSelectAppForEmbed = (selectedAppId: string, appName: string) => {
+    setAppIdInput(selectedAppId);
+    if (selectedAppId.includes('tome') || selectedAppId.includes('crafter') || selectedAppId.includes('publisher') || selectedAppId.includes('book')) {
+      setC2paManifestHash('0x8a92e109ff8b432a76cd1154e2098bca4401889c1048b');
+      setFtAuditId('FT-ETHIC-TOMECRAFTER-2026');
+      setStoryIpAssetId('0x33b4...tome77');
+    } else if (selectedAppId.includes('audio') || selectedAppId.includes('rlm') || selectedAppId.includes('remix-lyria') || selectedAppId.includes('lyria')) {
+      setC2paManifestHash('0x4f1b88e10c29a877bf4356e29910ac772189d9804b219');
+      setFtAuditId('FT-ETHIC-RLM-AUDIO-2026');
+      setStoryIpAssetId('0x9E83...audio99');
+    } else if (selectedAppId.includes('forgeos') || selectedAppId.includes('builder') || selectedAppId.includes('kernel')) {
+      setC2paManifestHash('0x93de66a8710fa44029ce11082bb4901cb00192e441890');
+      setFtAuditId('FT-ETHIC-FORGEOS-APPBUILDER-2026');
+      setStoryIpAssetId('0x11ce...code44');
+    } else if (selectedAppId.includes('easy-flow') || selectedAppId.includes('flow') || selectedAppId.includes('video')) {
+      setC2paManifestHash('0x22ab8991fc33910ebf778103418ba09c1189ac3409112');
+      setFtAuditId('FT-ETHIC-RL-EASY-FLOW-2026');
+      setStoryIpAssetId('0x55ef...flow11');
+    }
+    showToast(`Loaded ${appName} configuration (${selectedAppId}) into Badge Generator.`);
   };
 
   const handleGenerateNewHash = () => {
@@ -254,12 +318,12 @@ export default function App() {
 }`
     : isDelinquent
     ? `/* 
- * H.U.M.A.N. PROTOCOL NOTICE: 
+ * THE H.U.M.A.N. INITIATIVE NOTICE: 
  * Royalties are currently UNPAID (Balance: $0.00).
  * The badge has disappeared and is replaced by the "Earn your badge: Pay artist royalties" banner.
  * Developers can remove the banner from their UI at any time by deleting this embed component.
  */
-import { HumanEthicalBadge } from '@human-network/badge-react';
+import { HumanEthicalBadge } from '@human-initiative/badge-react';
 
 export default function App() {
   return (
@@ -273,11 +337,11 @@ export default function App() {
   );
 }`
     : `/* 
- * H.U.M.A.N. PROTOCOL NOTICE:
+ * THE H.U.M.A.N. INITIATIVE NOTICE:
  * The badge below will NOT populate because it is not linked or activated.
  * To remove completely, delete the embed snippet below.
  */
-import { HumanEthicalBadge } from '@human-network/badge-react';
+import { HumanEthicalBadge } from '@human-initiative/badge-react';
 
 export default function App() {
   return (
@@ -578,9 +642,16 @@ export default function App() {
           {/* Conditional Rendering Area: Shows badge ONLY IF linked, activated AND royalties paid */}
           <div className="p-6 rounded-2xl bg-[#FAF8F5] border border-[#E5E0D8] w-full min-h-[220px] flex justify-center items-center relative transition-all">
             {isBadgeFullyActive ? (
-              /* 1. ACTIVE, LINKED & FUNDED STATE: THE BADGE POPULATES */
+              /* 1. ACTIVE, LINKED & FUNDED STATE: THE BADGE POPULATES & LINKS TO COPYRIGHT LANDING PAGE */
               <div 
-                onClick={handleSimulateQRScan}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onNavigateToCopyright) {
+                    onNavigateToCopyright();
+                  } else {
+                    handleSimulateQRScan();
+                  }
+                }}
                 className={`cursor-pointer transition-all duration-300 transform hover:scale-102 rounded-2xl p-5 border shadow-md w-full max-w-md ${
                   selectedTheme === 'natural-olive'
                     ? 'bg-[#FFFFFF] border-[#5A5A40]/40 text-[#2D2926] shadow-[#5A5A40]/10'
@@ -593,28 +664,47 @@ export default function App() {
               >
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    {/* Fingerprint logo */}
-                    <HumanLogo size="md" showText={false} animated={true} />
+                    {/* Dedicated Target App Emblem or Custom App Logo */}
+                    <div className="w-11 h-11 rounded-xl bg-[#FAF8F5] border border-[#DCD5CA] flex items-center justify-center p-1 overflow-hidden shrink-0 shadow-2xs">
+                      {customLogo ? (
+                        <img 
+                          src={customLogo} 
+                          alt={customBadge?.appName || 'App Emblem'} 
+                          className="w-full h-full object-contain rounded-lg"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : customBadge?.logoVariant === 'rlm-pro-studio' ? (
+                        <RlmProStudioLogoIcon size={34} />
+                      ) : customBadge?.logoVariant === 'forgeos' ? (
+                        <ForgeOsLogoIcon size={34} />
+                      ) : customBadge?.logoVariant === 'rl-easy-flow' ? (
+                        <RlEasyFlowLogoIcon size={34} />
+                      ) : (
+                        <TomeCrafterLogoIcon size={34} />
+                      )}
+                    </div>
 
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-1.5">
                         <span className={`font-black tracking-wider text-[11px] uppercase ${
                           selectedTheme === 'charcoal-dark' ? 'text-[#D67D5C]' : 'text-[#5A5A40]'
                         }`}>
-                          ETHICAL AI BUILDER
+                          {customBadge?.appName ? `${customBadge.appName.toUpperCase()} • ETHICAL AI` : 'ETHICAL AI BUILDER'}
                         </span>
-                        <span className="h-1.5 w-1.5 rounded-full bg-[#5A5A40] animate-ping"></span>
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#3D6E50] animate-ping"></span>
                       </div>
                       <div className={`font-bold text-sm flex items-center gap-1 ${
                         selectedTheme === 'charcoal-dark' ? 'text-[#FFFFFF]' : 'text-[#2D2926]'
                       }`}>
-                        <span>H.U.M.A.N. Verified</span>
-                        <ShieldCheck className="w-3.5 h-3.5 text-[#5A5A40]" />
+                        <span>{customBadge?.appName || 'Tome Crafter'}</span>
+                        <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-[#EBF3ED] text-[#3D6E50] border border-[#C5DEC9]">
+                          {customBadge?.covenantPct || 40}% Fund Verified
+                        </span>
                       </div>
                       <div className={`text-[10px] font-mono ${
                         selectedTheme === 'charcoal-dark' ? 'text-[#D4CCC1]' : 'text-[#6A655C]'
                       }`}>
-                        Micro-Royalties Active (${royaltyBalance.toFixed(2)} Sample Balance)
+                        Powered by The H.U.M.A.N. Initiative • Live Micro-Royalties
                       </div>
                     </div>
                   </div>
@@ -734,7 +824,7 @@ export default function App() {
             <div className="flex items-center justify-between border-b border-[#E5E0D8] pb-3">
               <div className="flex items-center gap-2 text-xs font-mono uppercase text-[#5A5A40] font-bold">
                 <FileCheck className="w-4 h-4 text-[#5A5A40]" />
-                <span>3-Step Activation Protocol</span>
+                <span>3-Step Activation Workflow</span>
               </div>
               <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
                 isBadgeFullyActive 
@@ -906,6 +996,12 @@ export default function App() {
               </ul>
             </div>
           </div>
+
+          {/* 4 Flagship App Integrations & Verification Health Matrix */}
+          <AppIntegrationsHealthMatrix 
+            onSelectAppForEmbed={handleSelectAppForEmbed}
+            activeAppId={appIdInput}
+          />
 
           {/* 4-Layer Provenance & C2PA / Story Protocol Trust Matrix */}
           <div className="rounded-2xl border border-[#E5E0D8] bg-[#FFFFFF] p-5 space-y-4 shadow-2xs">

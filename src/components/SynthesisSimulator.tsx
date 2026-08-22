@@ -108,7 +108,7 @@ export const SynthesisSimulator: React.FC<SynthesisSimulatorProps> = ({
 
       const csvContent = [
         `# =========================================================================`,
-        `# H.U.M.A.N. Protocol - Creator Micro-Royalty & Attribution Audit Report`,
+        `# The H.U.M.A.N. Initiative - Creator Micro-Royalty & Attribution Audit Report`,
         `# =========================================================================`,
         `# Generated At: ${new Date().toISOString()}`,
         `# Filter Scope: ${appFilter}`,
@@ -136,7 +136,7 @@ export const SynthesisSimulator: React.FC<SynthesisSimulatorProps> = ({
       // Generate JSON Content
       const reportData = {
         metadata: {
-          platform: 'H.U.M.A.N. Protocol',
+          platform: 'The H.U.M.A.N. Initiative',
           standard: 'C2PA 2.1 & Story Protocol Programmable IP',
           description: 'Micro-Royalty Attribution & Patronage Stream Audit Report',
           generated_at: new Date().toISOString(),
@@ -190,9 +190,9 @@ export const SynthesisSimulator: React.FC<SynthesisSimulatorProps> = ({
       console.error('Synthesis error:', err);
       // Fallback
       setCurrentResult({
-        generatedSnippet: `// Synthesized with ReForgeOS 5-Stage Testing Guardrails\nimport { streamMicroRoyalty } from '@human-network/reforge-os';\n\nexport async function handleArtisanPatronage() {\n  return await streamMicroRoyalty({\n    beneficiary: 'codygermain032@gmail.com',\n    amountCents: 4.8,\n    guardrail: 'PASSED_ZERO_COPYLEFT'\n  });\n}`,
+        generatedSnippet: `// Synthesized with The H.U.M.A.N. Initiative Guardrails (Powering Ethical AI apps, And Paying the People)\nimport { streamSubscriptionRoyalty } from '@human-network/initiative';\n\nexport async function handleArtisanPatronage() {\n  return await streamSubscriptionRoyalty({\n    beneficiary: 'codygermain032@gmail.com',\n    amountCents: 4.8,\n    covenantShare: '40%'\n  });\n}`,
         attributedCreators: [
-          { name: 'Cody Germain', role: 'ReForgeOS Kernel Lead', package: '@reforge/kernel', microRoyaltyCents: 4.8 },
+          { name: 'Cody Germain', role: 'The H.U.M.A.N. Initiative Lead', package: '@human/kernel', microRoyaltyCents: 4.8 },
           { name: 'Sarah Chen', role: 'OSS Maintainer', package: '@fast-router', microRoyaltyCents: 2.2 },
         ],
         totalStreamedCents: 7.0,
@@ -291,9 +291,10 @@ export const SynthesisSimulator: React.FC<SynthesisSimulatorProps> = ({
                 onChange={(e) => setRequestedType(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg bg-[#F9F7F2] border border-[#DCD5CA] text-xs text-[#2D2926] focus:outline-none focus:border-[#5A5A40]"
               >
-                <option value="TypeScript React Component">TypeScript React Component (CodeSynthesizer / ShareShop)</option>
-                <option value="Acoustic Music Stems">Acoustic Music Stems (Lyria Studio)</option>
-                <option value="Literature / Documentation">Literature / Documentation (Artisan Author Guild)</option>
+                <option value="Literature / Documentation">Literature & Book Publishing (Tome Crafter - tomecrafter-ai-book-studio.ai.studio)</option>
+                <option value="Acoustic Music Stems">Acoustic Music & Stems (RLM Pro Studio - remix-lyria-studio-5954.ai.studio)</option>
+                <option value="TypeScript React Component">Cleanroom Code & AST (ForgeOS App Builders & Tester)</option>
+                <option value="AI Video Scenes">AI Video Generation (RL Easy Flow - rl-easy-flow.ai.studio)</option>
                 <option value="Vector UI Glyphs">Vector UI Glyphs (Artisan UX)</option>
               </select>
             </div>
@@ -495,11 +496,11 @@ export const SynthesisSimulator: React.FC<SynthesisSimulatorProps> = ({
                   className="w-full px-3 py-2 rounded-lg bg-[#F9F7F2] border border-[#DCD5CA] text-xs text-[#2D2926] focus:outline-none focus:border-[#5A5A40]"
                 >
                   <option value="All">All Cohorts & Applications ({events.length} events)</option>
+                  <option value="TomeCrafter">Tome Crafter</option>
+                  <option value="RLMPro">RLM Pro Studio</option>
+                  <option value="RLEasyFlow">RL Easy Flow</option>
                   <option value="ShareShop">ShareShop Pro</option>
                   <option value="Lyria">Lyria Studio</option>
-                  <option value="CodeSynthesizer">CodeSynthesizer</option>
-                  <option value="ReForgeOS">ReForgeOS Engine</option>
-                  <option value="ArtisanPay">ArtisanPay API</option>
                 </select>
               </div>
 

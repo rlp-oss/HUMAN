@@ -35,13 +35,13 @@ export const FeedbackPortal: React.FC<FeedbackPortalProps> = ({ feedbackList, on
   // New feedback form states
   const [newTesterName, setNewTesterName] = useState('Cody Germain');
   const [newTesterEmail, setNewTesterEmail] = useState('codygermain032@gmail.com');
-  const [newApp, setNewApp] = useState<AppName>('ShareShop Pro');
+  const [newApp, setNewApp] = useState<AppName>('Tome Crafter');
   const [newCategory, setNewCategory] = useState<FeedbackCategory>('Bug');
   const [newSeverity, setNewSeverity] = useState<FeedbackSeverity>('Medium');
   const [newSubject, setNewSubject] = useState('');
   const [newContent, setNewContent] = useState('');
 
-  const allApps: AppName[] = ['ShareShop Pro', 'Lyria Studio', 'CodeSynthesizer', 'ReForgeOS Engine', 'ArtisanPay API'];
+  const allApps: AppName[] = ['Tome Crafter', 'RLM Pro Studio', 'ForgeOS App Builder', 'RL Easy Flow'];
 
   const showToast = (msg: string) => {
     setToast(msg);

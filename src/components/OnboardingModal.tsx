@@ -29,7 +29,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   const [email, setEmail] = useState('');
   const [githubHandle, setGithubHandle] = useState('');
   const [role, setRole] = useState<PlatformRole>('App Creator');
-  const [selectedApps, setSelectedApps] = useState<AppName[]>(['ShareShop Pro', 'Lyria Studio']);
+  const [selectedApps, setSelectedApps] = useState<AppName[]>(['Tome Crafter', 'RLM Pro Studio']);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('Stripe Sandbox');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,11 +38,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   if (!isOpen) return null;
 
   const availableApps: AppName[] = [
-    'ShareShop Pro',
-    'Lyria Studio',
-    'CodeSynthesizer',
-    'ReForgeOS Engine',
-    'ArtisanPay API',
+    'Tome Crafter',
+    'RLM Pro Studio',
+    'ForgeOS App Builder',
+    'RL Easy Flow',
   ];
 
   const handleToggleApp = (app: AppName) => {
@@ -80,7 +79,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
         app_access_list: selectedApps,
         current_subscription_status: subscriptionStatus,
         stripe_account_id: stripeAccountId,
-        notes: notes.trim() || 'New beta tester onboarded via ReForgeOS CRM Console.',
+        notes: notes.trim() || 'New beta tester onboarded via H.U.M.A.N. Protocol Console (Powering Ethical AI apps, And Paying the People).',
       });
 
       confetti({
@@ -266,7 +265,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               <span>Automated Onboarding Sequence:</span>
             </div>
             <ul className="list-disc list-inside space-y-1 text-emerald-300/80 font-mono text-[11px]">
-              <li>Issues cryptographically signed ReForgeOS License Keys for each assigned app</li>
+              <li>Issues cryptographically signed H.U.M.A.N. Protocol License Keys for each assigned app</li>
               <li>Provisions sandbox customer ID in Stripe test database</li>
               <li>Generates & triggers tailored Welcome Email with credentials</li>
             </ul>

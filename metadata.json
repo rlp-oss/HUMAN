@@ -1,6 +1,6 @@
 {
   "name": "humanethicalai",
-  "description": "The Universal Attribution & Micro-Royalty Network for Coders, Authors, Musicians, and Artists with Beta Tester CRM, Stripe Connect micro-patronage, and ethical AI badge verification.",
+  "description": "Public Education and Mission Sanctuary for everyday people to understand the vision to end needless hate, pain, violence, corporate greed, and human suffering through ethical technology, radical empathy, and the Human Initiative.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

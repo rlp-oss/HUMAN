@@ -10,6 +10,24 @@ export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId)
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
+// Add Google Workspace / Drive scopes
+googleProvider.addScope('https://www.googleapis.com/auth/drive');
+googleProvider.addScope('https://www.googleapis.com/auth/drive.file');
+googleProvider.addScope('https://www.googleapis.com/auth/drive.readonly');
+googleProvider.addScope('https://www.googleapis.com/auth/drive.metadata.readonly');
+
+// In-memory token cache (never stored in localStorage/sessionStorage per security guidelines)
+let cachedAccessToken: string | null = null;
+let isSigningIn = false;
+
+export const getAccessToken = async (): Promise<string | null> => {
+  return cachedAccessToken;
+};
+
+export const setCachedAccessToken = (token: string | null) => {
+  cachedAccessToken = token;
+};
+
 export enum OperationType {
   CREATE = 'create',
   UPDATE = 'update',
@@ -62,16 +80,24 @@ export async function testFirestoreConnection(): Promise<boolean> {
   }
 }
 
-export async function signInWithGoogle() {
+export async function signInWithGoogle(): Promise<{ user: any; accessToken: string | null }> {
   try {
+    isSigningIn = true;
     const result = await signInWithPopup(auth, googleProvider);
-    return result.user;
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    if (credential?.accessToken) {
+      cachedAccessToken = credential.accessToken;
+    }
+    return { user: result.user, accessToken: cachedAccessToken };
   } catch (err) {
     console.error('Google Sign In Error:', err);
     throw err;
+  } finally {
+    isSigningIn = false;
   }
 }
 
 export async function logOut() {
+  cachedAccessToken = null;
   return signOut(auth);
 }

@@ -1,33 +1,189 @@
 @import "tailwindcss";
 
+:root {
+  --color-bg-base: #F9F7F2;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-card: #FAF8F5;
+  --color-bg-subtle: #F2ECE4;
+  --color-bg-input: #FFFFFF;
+  --color-text-main: #2D2926;
+  --color-text-muted: #6A655C;
+  --color-border: #E5E0D8;
+  --color-border-subtle: #ECE7DF;
+  --color-accent-emerald: #059669;
+  --color-accent-cyan: #0891B2;
+  --color-accent-glow: rgba(5, 150, 105, 0.15);
+  --glow-opacity: 0.75;
+  --window-radius: 14px;
+}
+
+[data-theme="dark"],
+html.dark {
+  --color-bg-base: #0B1311;
+  --color-bg-surface: #101B18;
+  --color-bg-card: #142320;
+  --color-bg-subtle: #192D28;
+  --color-bg-input: #08100E;
+  --color-text-main: #F0FDF4;
+  --color-text-muted: #94A3B8;
+  --color-border: #1E3A33;
+  --color-border-subtle: #182F2A;
+  --color-accent-emerald: #10B981;
+  --color-accent-cyan: #67E8F9;
+  --color-accent-glow: rgba(16, 185, 129, 0.25);
+}
+
+[data-theme="oled"],
+html.oled-theme {
+  --color-bg-base: #000000;
+  --color-bg-surface: #070D0B;
+  --color-bg-card: #0A1412;
+  --color-bg-subtle: #101E1B;
+  --color-bg-input: #040706;
+  --color-text-main: #FFFFFF;
+  --color-text-muted: #A1A1AA;
+  --color-border: #1A362F;
+  --color-border-subtle: #142B25;
+  --color-accent-emerald: #34D399;
+  --color-accent-cyan: #22D3EE;
+  --color-accent-glow: rgba(52, 211, 153, 0.35);
+}
+
 @layer base {
   body {
-    background-color: #F9F7F2;
-    color: #2D2926;
+    background-color: var(--color-bg-base);
+    color: var(--color-text-main);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
 
   ::selection {
-    background-color: #EED7CE;
-    color: #2D2926;
+    background-color: #059669;
+    color: #FFFFFF;
+  }
+
+  html.dark ::selection {
+    background-color: #10B981;
+    color: #0B1311;
   }
 }
 
-/* Natural Tones custom scrollbars */
+/* =========================================================================
+ * UNIVERSAL THEME & DARK/OLED MODE WINDOW & CONTAINER ADAPTATIONS
+ * Ensures all windows, cards, text boxes, and tags adapt to Obsidian & OLED
+ * ========================================================================= */
+html.dark .bg-\[\#F9F7F2\],
+html.dark .bg-\[\#F9F7F2\]\/95,
+html.dark .bg-\[\#FAF8F5\],
+html.dark .bg-\[\#FFFFFF\],
+html.dark .bg-white {
+  background-color: var(--color-bg-surface) !important;
+}
+
+html.dark .bg-\[\#F2ECE4\],
+html.dark .bg-\[\#E5E0D8\],
+html.dark .bg-\[\#FAF0EC\],
+html.dark .bg-\[\#F5E6DF\],
+html.dark .bg-\[\#EAF4EE\] {
+  background-color: var(--color-bg-card) !important;
+}
+
+html.dark .text-\[\#2D2926\],
+html.dark .text-\[\#1A1A1A\],
+html.dark .text-gray-900 {
+  color: var(--color-text-main) !important;
+}
+
+html.dark .text-\[\#5A5A40\],
+html.dark .text-\[\#6A655C\],
+html.dark .text-\[\#8C857B\],
+html.dark .text-\[\#B8ADA0\],
+html.dark .text-gray-600 {
+  color: var(--color-text-muted) !important;
+}
+
+html.dark .border-\[\#E5E0D8\],
+html.dark .border-\[\#DCD5CA\],
+html.dark .border-\[\#ECE7DF\],
+html.dark .border-\[\#EECDBC\],
+html.dark .border-gray-200 {
+  border-color: var(--color-border) !important;
+}
+
+/* Text inputs and textareas in dark mode */
+html.dark input[type="text"],
+html.dark input[type="email"],
+html.dark input[type="number"],
+html.dark textarea,
+html.dark select {
+  background-color: var(--color-bg-input) !important;
+  color: var(--color-text-main) !important;
+  border-color: var(--color-border) !important;
+}
+
+/* Green tags and badges in dark mode */
+html.dark .text-\[\#3D6E50\],
+html.dark .text-\[\#064E3B\],
+html.dark .text-\[\#059669\] {
+  color: var(--color-accent-emerald) !important;
+}
+
+html.dark .bg-\[\#EAF4EE\] {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+/* OLED specific overrides */
+html.oled-theme body {
+  background-color: #000000 !important;
+}
+html.oled-theme .bg-\[\#F9F7F2\],
+html.oled-theme .bg-\[\#F9F7F2\]\/95,
+html.oled-theme .bg-\[\#FAF8F5\],
+html.oled-theme .bg-\[\#FFFFFF\],
+html.oled-theme .bg-white {
+  background-color: #070D0B !important;
+}
+html.oled-theme .bg-\[\#F2ECE4\],
+html.oled-theme .bg-\[\#E5E0D8\],
+html.oled-theme .bg-\[\#FAF0EC\] {
+  background-color: #0A1412 !important;
+}
+
+/* Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #F2ECE4;
+  background: var(--color-bg-subtle);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #D4CCC1;
+  background: var(--color-border);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #B8ADA0;
+  background: var(--color-accent-emerald);
 }
+
+/* Smooth Glow Utility */
+.logo-cyber-glow {
+  box-shadow: 0 0 25px rgba(16, 185, 129, calc(0.25 * var(--glow-opacity, 1)));
+}
+
+.logo-cyan-glow {
+  box-shadow: 0 0 25px rgba(103, 232, 249, calc(0.25 * var(--glow-opacity, 1)));
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.02); }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 4s ease-in-out infinite;
+}
+
