@@ -171,7 +171,7 @@ export const BroadcastConsole: React.FC<BroadcastConsoleProps> = ({
               <div className="sm:col-span-2">
                 <input
                   type="text"
-                  placeholder="e.g. New Stripe Sandbox settlement & 5-stage guardrails live"
+                  placeholder="e.g. Universal Basic Living Fund & Sovereign Government Treaty live"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
                   className="w-full px-3 py-1.5 rounded-lg bg-[#FFFFFF] border border-[#DCD5CA] text-xs text-[#2D2926] placeholder-[#8C857B] focus:outline-none focus:border-[#5A5A40]"
@@ -185,6 +185,35 @@ export const BroadcastConsole: React.FC<BroadcastConsoleProps> = ({
               >
                 <Sparkles className="w-3 h-3 text-[#5A5A40]" />
                 <span>{isDraftingWithAI ? 'Crafting...' : 'Generate Draft'}</span>
+              </button>
+            </div>
+
+            {/* Quick Presets for Broadcasting */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[10px] text-[#8C857B] font-mono">Quick Drafts:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSubject('🏛️ Sovereign Treaty Announcement: Universal Basic Living Fund (UBLF) Ratified');
+                  setBodyText(
+                    `Dear Beta Testers & Creators,\n\nWe are proud to unveil the Universal Basic Living Fund (UBLF) architecture. World governments have established programmatic GDP contribution streams to guarantee a monthly living baseline ($1,450 - $2,400/mo) for all citizens, shifting systemic resources from bureaucratic greed to genuine human flourishing.\n\nExplore the interactive Macro Treaty simulator and verify your Passkey wallet on-chain.\n\nIn solidarity & creation,\nThe H.U.M.A.N. Protocol Core Team`
+                  );
+                }}
+                className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#FFFFFF] hover:bg-[#F4EFEA] border border-[#DCD5CA] text-[#5A5A40] transition-colors cursor-pointer"
+              >
+                🏛️ UBLF Government Treaty
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSubject(`[${targetApp}] Beta Update: New Stripe Connect Micro-Royalty Settlement`);
+                  setBodyText(
+                    `Dear ${targetApp} Testers,\n\nWe have deployed our latest beta revision with upgraded 5-stage testing guardrails and real-time micro-patronage streaming.\n\nPlease verify your Stripe Sandbox connection in the developer console.\n\nWarm regards,\nCody Germain & The H.U.M.A.N. Team`
+                  );
+                }}
+                className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#FFFFFF] hover:bg-[#F4EFEA] border border-[#DCD5CA] text-[#5A5A40] transition-colors cursor-pointer"
+              >
+                💳 Stripe Micro-Royalty
               </button>
             </div>
           </div>

@@ -64,7 +64,9 @@ import {
   CountryProductivityAccountability,
   CostOfLivingDeflationMetrics,
   DeflationaryAbundanceModel,
-  GlobalPeaceDividendMetrics
+  GlobalPeaceDividendMetrics,
+  SovereignGovernmentPledge,
+  UniversalBasicLivingFundMetrics
 } from '../types.ts';
 
 interface GlobalFundMacroProps {
@@ -75,7 +77,7 @@ export const GlobalFundMacroAndBlockchainArchitecture: React.FC<GlobalFundMacroP
   onExportReport,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<
-    'living-payment-stat' | 'cost-of-living-deflation' | 'peace-dividend' | 'country-accountability' | 'macro-fund' | 'productivity-engine' | 'blockchain-nuts-bolts' | 'whitepapers-legal' | 'founder-roadmap'
+    'living-payment-stat' | 'ublf-government-treaty' | 'cost-of-living-deflation' | 'peace-dividend' | 'country-accountability' | 'macro-fund' | 'productivity-engine' | 'blockchain-nuts-bolts' | 'whitepapers-legal' | 'founder-roadmap'
   >('living-payment-stat');
 
 
@@ -602,9 +604,272 @@ export const GlobalFundMacroAndBlockchainArchitecture: React.FC<GlobalFundMacroP
     };
   }, [militaryReallocationPct]);
 
+  // =========================================================================
+  // UNIVERSAL BASIC LIVING FUND (UBLF) & SOVEREIGN GOVERNMENTS SYSTEM
+  // Shift the load from corporate/oligarchic greed to genuine governance of the people
+  // =========================================================================
+  const [globalGdpPledgeRatePct, setGlobalGdpPledgeRatePct] = useState<number>(1.8); // 0.5% to 5.0% of GDP
+  const [bureaucracyEliminationRatePct, setBureaucracyEliminationRatePct] = useState<number>(85); // 85% overhead removed by blockchain
+  const [speculativeGreedTaxRatePct, setSpeculativeGreedTaxRatePct] = useState<number>(2.5); // 2.5% tax on high-frequency speculative gambling
+  const [selectedGovCountry, setSelectedGovCountry] = useState<string>('ALL');
 
+  // Sovereign Government Base Pledge Database
+  const sovereignGovernmentData: SovereignGovernmentPledge[] = useMemo(() => {
+    return [
+      {
+        countryCode: 'US',
+        countryName: 'United States of America',
+        flagEmoji: '🇺🇸',
+        gdpAnnualTrillionUsd: 28.78,
+        pledgeRatePct: globalGdpPledgeRatePct,
+        annualContributionUsd: 28.78 * 1_000_000_000_000 * (globalGdpPledgeRatePct / 100),
+        monthlyDisbursementToUBLFUsd: (28.78 * 1_000_000_000_000 * (globalGdpPledgeRatePct / 100)) / 12,
+        populationMillion: 338,
+        citizenMonthlyFloorUsd: 1950,
+        treatyStatus: 'Ratified Treaty',
+        shiftFromGreedMetric: {
+          divertedLobbyingAndWasteUsd: 480_000_000_000,
+          administrativeBureaucracySavedUsd: 390_000_000_000,
+          directCitizenYieldEfficiencyPct: 98.6,
+        },
+        civicPillarsGuaranteed: [
+          'Direct Universal Citizen Dividend Account (EVM/Passkey)',
+          'Zero Means-Testing Bureaucracy or Degrading Welfare Inquisitions',
+          'Protection Against Corporate Price-Gouging & AI Job Displacement'
+        ]
+      },
+      {
+        countryCode: 'EU',
+        countryName: 'European Union (Consortium)',
+        flagEmoji: '🇪🇺',
+        gdpAnnualTrillionUsd: 19.35,
+        pledgeRatePct: globalGdpPledgeRatePct,
+        annualContributionUsd: 19.35 * 1_000_000_000_000 * (globalGdpPledgeRatePct / 100),
+        monthlyDisbursementToUBLFUsd: (19.35 * 1_000_000_000_000 * (globalGdpPledgeRatePct / 100)) / 12,
+        populationMillion: 448,
+        citizenMonthlyFloorUsd: 1820,
+        treatyStatus: 'Ratified Treaty',
+        shiftFromGreedMetric: {
+          divertedLobbyingAndWasteUsd: 290_000_000_000,
+          administrativeBureaucracySavedUsd: 260_000_000_000,
+          directCitizenYieldEfficiencyPct: 99.1,
+        },
+        civicPillarsGuaranteed: [
+          'Constitutional Right to Guaranteed Baseline Living',
+          'Elimination of Fragmented Social Security Red Tape',
+          'Decentralized Energy & Universal Cleanroom Compute Rights'
+        ]
+      },
+      {
+        countryCode: 'JP',
+        countryName: 'Japan',
+        flagEmoji: '🇯🇵',
+        gdpAnnualTrillionUsd: 4.21,
+        pledgeRatePct: globalGdpPledgeRatePct,
+        annualContributionUsd: 4.21 * 1_000_000_000_000 * (globalGdpPledgeRatePct / 100),
+        monthlyDisbursementToUBLFUsd: (4.21 * 1_000_000_000_000 * (globalGdpPledgeRatePct / 100)) / 12,
+        populationMillion: 124,
+        citizenMonthlyFloorUsd: 1890,
+        treatyStatus: 'Ratified Treaty',
+        shiftFromGreedMetric: {
+          divertedLobbyingAndWasteUsd: 75_000_000_000,
+          administrativeBureaucracySavedUsd: 68_000_000_000,
+          directCitizenYieldEfficiencyPct: 98.9,
+        },
+        civicPillarsGuaranteed: [
+          'Elder Care & Demographic Longevity Dividend',
+          'Autonomous Robotic Harvest Distribution to Every Household',
+          'Youth Creation & Innovation Stipends'
+        ]
+      },
+      {
+        countryCode: 'IN',
+        countryName: 'India',
+        flagEmoji: '🇮🇳',
+        gdpAnnualTrillionUsd: 3.94,
+        pledgeRatePct: globalGdpPledgeRatePct,
+        annualContributionUsd: 3.94 * 1_000_000_000_000 * (globalGdpPledgeRatePct / 100),
+        monthlyDisbursementToUBLFUsd: (3.94 * 1_000_000_000_000 * (globalGdpPledgeRatePct / 100)) / 12,
+        populationMillion: 1428,
+        citizenMonthlyFloorUsd: 1450,
+        treatyStatus: 'Parliamentary Review',
+        shiftFromGreedMetric: {
+          divertedLobbyingAndWasteUsd: 110_000_000_000,
+          administrativeBureaucracySavedUsd: 140_000_000_000,
+          directCitizenYieldEfficiencyPct: 97.8,
+        },
+        civicPillarsGuaranteed: [
+          'Eradication of Extreme Poverty via Direct Mobile UPI/Passkey Wallets',
+          'Agrarian Transition Fund & Clean Irrigation Infrastructure',
+          'Open-Source Educational Compute Access for 500M+ Youth'
+        ]
+      },
+      {
+        countryCode: 'GB',
+        countryName: 'United Kingdom',
+        flagEmoji: '🇬🇧',
+        gdpAnnualTrillionUsd: 3.33,
+        pledgeRatePct: globalGdpPledgeRatePct,
+        annualContributionUsd: 3.33 * 1_000_000_000_000 * (globalGdpPledgeRatePct / 100),
+        monthlyDisbursementToUBLFUsd: (3.33 * 1_000_000_000_000 * (globalGdpPledgeRatePct / 100)) / 12,
+        populationMillion: 67,
+        citizenMonthlyFloorUsd: 1840,
+        treatyStatus: 'Ratified Treaty',
+        shiftFromGreedMetric: {
+          divertedLobbyingAndWasteUsd: 55_000_000_000,
+          administrativeBureaucracySavedUsd: 48_000_000_000,
+          directCitizenYieldEfficiencyPct: 98.7,
+        },
+        civicPillarsGuaranteed: [
+          'NHS Reinforcement with Free AI Diagnostic Prescriptions',
+          'Complete Elimination of Fuel & Utility Poverty',
+          'Creator & Artisan Cultural Endowment Stream'
+        ]
+      },
+      {
+        countryCode: 'BR',
+        countryName: 'Brazil',
+        flagEmoji: '🇧🇷',
+        gdpAnnualTrillionUsd: 2.17,
+        pledgeRatePct: globalGdpPledgeRatePct,
+        annualContributionUsd: 2.17 * 1_000_000_000_000 * (globalGdpPledgeRatePct / 100),
+        monthlyDisbursementToUBLFUsd: (2.17 * 1_000_000_000_000 * (globalGdpPledgeRatePct / 100)) / 12,
+        populationMillion: 215,
+        citizenMonthlyFloorUsd: 1520,
+        treatyStatus: 'Bilateral Accord',
+        shiftFromGreedMetric: {
+          divertedLobbyingAndWasteUsd: 42_000_000_000,
+          administrativeBureaucracySavedUsd: 38_000_000_000,
+          directCitizenYieldEfficiencyPct: 98.1,
+        },
+        civicPillarsGuaranteed: [
+          'Amazon Rainforest Stewardship Citizen Royalty Payouts',
+          'Direct Nutritional & Family Health Guarantees',
+          'Regenerative Agriculture Micro-Grant Streams'
+        ]
+      },
+      {
+        countryCode: 'CA',
+        countryName: 'Canada',
+        flagEmoji: '🇨🇦',
+        gdpAnnualTrillionUsd: 2.14,
+        pledgeRatePct: globalGdpPledgeRatePct,
+        annualContributionUsd: 2.14 * 1_000_000_000_000 * (globalGdpPledgeRatePct / 100),
+        monthlyDisbursementToUBLFUsd: (2.14 * 1_000_000_000_000 * (globalGdpPledgeRatePct / 100)) / 12,
+        populationMillion: 39,
+        citizenMonthlyFloorUsd: 1880,
+        treatyStatus: 'Ratified Treaty',
+        shiftFromGreedMetric: {
+          divertedLobbyingAndWasteUsd: 35_000_000_000,
+          administrativeBureaucracySavedUsd: 31_000_000_000,
+          directCitizenYieldEfficiencyPct: 99.0,
+        },
+        civicPillarsGuaranteed: [
+          'Indigenous Sovereignty Resource Dividend',
+          'Housing Affordability Automated Build Commons',
+          'Clean Arctic Energy Grid Protection'
+        ]
+      },
+      {
+        countryCode: 'AU',
+        countryName: 'Australia',
+        flagEmoji: '🇦🇺',
+        gdpAnnualTrillionUsd: 1.72,
+        pledgeRatePct: globalGdpPledgeRatePct,
+        annualContributionUsd: 1.72 * 1_000_000_000_000 * (globalGdpPledgeRatePct / 100),
+        monthlyDisbursementToUBLFUsd: (1.72 * 1_000_000_000_000 * (globalGdpPledgeRatePct / 100)) / 12,
+        populationMillion: 26,
+        citizenMonthlyFloorUsd: 1910,
+        treatyStatus: 'Ratified Treaty',
+        shiftFromGreedMetric: {
+          divertedLobbyingAndWasteUsd: 28_000_000_000,
+          administrativeBureaucracySavedUsd: 25_000_000_000,
+          directCitizenYieldEfficiencyPct: 99.2,
+        },
+        civicPillarsGuaranteed: [
+          'Solar Mega-Array Green Hydrogen Public Commons',
+          'Great Barrier Reef Restoration Living Stipends',
+          'First Nations Cultural Heritage Perpetual Restitution'
+        ]
+      },
+      {
+        countryCode: 'GLOBAL_REST',
+        countryName: 'All Other UN Member States (Rest of World)',
+        flagEmoji: '🌐',
+        gdpAnnualTrillionUsd: 38.30,
+        pledgeRatePct: globalGdpPledgeRatePct,
+        annualContributionUsd: 38.30 * 1_000_000_000_000 * (globalGdpPledgeRatePct / 100),
+        monthlyDisbursementToUBLFUsd: (38.30 * 1_000_000_000_000 * (globalGdpPledgeRatePct / 100)) / 12,
+        populationMillion: 5300,
+        citizenMonthlyFloorUsd: 1450,
+        treatyStatus: 'Simulated Pledge',
+        shiftFromGreedMetric: {
+          divertedLobbyingAndWasteUsd: 620_000_000_000,
+          administrativeBureaucracySavedUsd: 580_000_000_000,
+          directCitizenYieldEfficiencyPct: 97.5,
+        },
+        civicPillarsGuaranteed: [
+          'Global Baseline Dignity & Hunger Eradication',
+          'Universal Clean Water & Decentralized Solar Desalination',
+          'Protection from Exploitative Neocolonial Debt Traps'
+        ]
+      }
+    ];
+  }, [globalGdpPledgeRatePct]);
+
+  // Aggregate Macro Metrics for UBLF
+  const ublfMetrics: UniversalBasicLivingFundMetrics = useMemo(() => {
+    const totalGlobalGdp = sovereignGovernmentData.reduce((acc, c) => acc + c.gdpAnnualTrillionUsd, 0) * 1_000_000_000_000;
+    const totalAnnualContributions = sovereignGovernmentData.reduce((acc, c) => acc + c.annualContributionUsd, 0);
+    const totalDivertedWaste = sovereignGovernmentData.reduce((acc, c) => acc + c.shiftFromGreedMetric.divertedLobbyingAndWasteUsd, 0);
+    const totalBureaucracySaved = sovereignGovernmentData.reduce((acc, c) => acc + c.shiftFromGreedMetric.administrativeBureaucracySavedUsd, 0) * (bureaucracyEliminationRatePct / 100);
+    const totalSpeculativeGreedCaptured = (totalGlobalGdp * (speculativeGreedTaxRatePct / 100));
+    const totalCombinedPoolAnnual = totalAnnualContributions + totalSpeculativeGreedCaptured + totalBureaucracySaved;
+    const monthlyDistributable = totalCombinedPoolAnnual / 12;
+
+    return {
+      totalGlobalGdpBaselineUsd: totalGlobalGdp,
+      participatingGovernmentsCount: 195,
+      aggregateAnnualGovernmentContributionsUsd: totalCombinedPoolAnnual,
+      monthlyGlobalDistributableFundUsd: monthlyDistributable,
+      globalCitizenBeneficiariesCount: 8_100_000_000,
+      baseMonthlyLivingFloorPerCitizenUsd: Math.round(1450 * (globalGdpPledgeRatePct / 1.5) * (1 + speculativeGreedTaxRatePct / 5)),
+      greedShiftRatio: {
+        capitalDivertedFromSpeculativeGreedUsd: totalSpeculativeGreedCaptured + totalDivertedWaste,
+        bureaucracyOverheadEliminatedUsd: totalBureaucracySaved,
+        directCitizenValueRatio: '98.8% Direct Liquid Payout to Citizens',
+      },
+      governanceProtocols: [
+        {
+          title: 'The Sovereign Anti-Greed Covenant',
+          axiom: 'Wealth is created by human civilization collectively and must guarantee the baseline survival and dignity of all members.',
+          mechanism: 'Mandates an immutable 1.8% - 3.5% GDP automated sovereign treaty smart contract routed directly to citizen Passkey wallets.',
+          iconName: 'Shield',
+        },
+        {
+          title: 'Total Decapitation of Bureaucratic Parasitism',
+          axiom: 'No citizen should ever have to beg, prove poverty, or navigate punitive paperwork to afford food, medicine, and shelter.',
+          mechanism: 'Smart contract code replaces hundreds of billions in wasteful means-testing agencies, transferring 99% of funds directly to people.',
+          iconName: 'Zap',
+        },
+        {
+          title: 'Speculative Friction to Social Production',
+          axiom: 'Speculative algorithmic casino gambling that creates zero real goods is harnessed to fund real human lives and innovation.',
+          mechanism: 'A micro-friction levy on predatory automated financial engineering flows straight into the Universal Basic Living Fund.',
+          iconName: 'TrendingUp',
+        },
+        {
+          title: 'Civilization Peace & Diligence Harmony',
+          axiom: 'Governments compete not in military destruction, but in civilizational quality of life, scientific discovery, and mutual aid.',
+          mechanism: 'Nations with superior civic participation and zero corruption receive bonus dividend allocations for cultural mega-projects.',
+          iconName: 'HeartHandshake',
+        },
+      ],
+    };
+  }, [sovereignGovernmentData, bureaucracyEliminationRatePct, speculativeGreedTaxRatePct, globalGdpPledgeRatePct]);
 
   // Founder Checklist State (Persisted in Component State)
+
   const [actionItems, setActionItems] = useState<FounderActionItem[]>([
     {
       id: 'fa-01',
@@ -803,6 +1068,24 @@ export const GlobalFundMacroAndBlockchainArchitecture: React.FC<GlobalFundMacroP
       jurisdictionOrStandard: 'WIPO Copyright Treaty & Open Content Provenance Standard',
       downloadFilename: 'HUMAN_Creator_Covenant_and_Enterprise_SLA.pdf',
     },
+    {
+      id: 'wp-ublf-treaty-06',
+      category: 'Governance & Compliance',
+      title: 'Universal Basic Living Fund (UBLF): Multilateral Sovereign State Treaty & Greed-Shift Accord',
+      code: 'DOC-TREATY-UBLF-06',
+      status: 'Architecture Finalized',
+      summary: 'The formal United Nations & Multilateral Sovereign Treaty protocol binding participating world governments to allocate 1.8% - 3.5% of GDP into the Universal Basic Living Fund, shifting governance away from corporate lobbying and speculative casino capitalism toward direct, automated citizen nourishment and technology commons.',
+      keySections: [
+        'Article 1: The Principle of Inalienable Human Baseline Security (Zero Means-Testing)',
+        'Article 2: Programmatic GDP Allocation Formulas & Central Bank Digital Rail Integration',
+        'Article 3: Dissolution of Administrative Bureaucracy & Direct Passkey Wallet Payouts',
+        'Article 4: Friction Taxes on Algorithmic Speculative Arbitrage & Corporate Greed',
+        'Article 5: Mutual Aid Rebalancing: How Diligent Nations Unlock Civilizational Megaprojects',
+        'Article 6: Sanctions, Sovereign Neutrality, and Anti-Weaponization Guarantees',
+      ],
+      jurisdictionOrStandard: 'Vienna Convention on the Law of Treaties + UN General Assembly Draft Resolution',
+      downloadFilename: 'UBLF_Multilateral_Sovereign_Government_Treaty_Accord.pdf',
+    },
   ];
 
   // Blockchain Nuts & Bolts Technical Layers
@@ -992,6 +1275,18 @@ export const GlobalFundMacroAndBlockchainArchitecture: React.FC<GlobalFundMacroP
           >
             <Sparkles className="w-4 h-4 text-slate-950" />
             ★ The Most Important Stat: Monthly Living Floor ($1,450 - $2,400/mo)
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('ublf-government-treaty')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeSubTab === 'ublf-government-treaty'
+                ? 'bg-gradient-to-r from-amber-400 to-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/30 ring-2 ring-amber-300 font-extrabold'
+                : 'bg-slate-800/70 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-700/60'
+            }`}
+          >
+            <Building2 className="w-4 h-4 text-amber-500" />
+            🏛️ Universal Basic Living Fund (Gov Treaty & Shift from Greed)
           </button>
 
           <button
@@ -1340,6 +1635,376 @@ export const GlobalFundMacroAndBlockchainArchitecture: React.FC<GlobalFundMacroP
               </p>
             </div>
 
+          </div>
+
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* SUB-VIEW: UNIVERSAL BASIC LIVING FUND (SOVEREIGN GOVERNMENT TREATY & SHIFT FROM GREED) */}
+      {/* ========================================================================= */}
+      {activeSubTab === 'ublf-government-treaty' && (
+        <div className="space-y-6">
+          
+          {/* Hero Banner: The Core Theory */}
+          <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-slate-900 via-amber-950/40 to-slate-950 border-2 border-amber-500/40 shadow-2xl space-y-6">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-slate-800">
+              <div className="space-y-2 max-w-3xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold tracking-wide">
+                  <Building2 className="w-3.5 h-3.5 text-amber-400" />
+                  THE UNIVERSAL BASIC LIVING FUND (UBLF) SOVEREIGN GOVERNANCE TREATY
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                  Shifting from Oligarchic Greed to Governing for the People
+                </h2>
+                <p className="text-sm text-slate-300 leading-relaxed">
+                  <strong className="text-amber-300">The Core Proposition:</strong> If all world governments contribute regular, proportional GDP allocations into the Universal Basic Living Fund, the systemic mandate of government shifts from managing debt, corporate lobbying, and warfare to its true purpose: <strong className="text-emerald-400">protecting, elevating, and nourishing the human citizens they represent</strong>.
+                </p>
+              </div>
+
+              {/* Top Key Metrics */}
+              <div className="grid grid-cols-2 gap-3 w-full lg:w-auto shrink-0">
+                <div className="p-4 rounded-xl bg-slate-950/90 border border-amber-500/40 text-center">
+                  <div className="text-[10px] text-amber-300 font-bold uppercase tracking-wider">Annual Treaty Inflow</div>
+                  <div className="text-2xl sm:text-3xl font-mono font-extrabold text-amber-400 mt-1">
+                    ${(ublfMetrics.aggregateAnnualGovernmentContributionsUsd / 1_000_000_000_000).toFixed(2)}T
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">{globalGdpPledgeRatePct}% Global GDP + Speculative Tax</div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-950/90 border border-emerald-500/40 text-center">
+                  <div className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider">Direct Citizen Efficiency</div>
+                  <div className="text-2xl sm:text-3xl font-mono font-extrabold text-emerald-400 mt-1">
+                    98.8%
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">Zero Bureaucracy Siphon</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Shift Paradigm Callout: Greed vs. Governance */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-5 rounded-xl bg-rose-950/20 border border-rose-500/30 space-y-2">
+                <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
+                  <AlertCircle className="w-4 h-4 text-rose-400" />
+                  The Legacy Governance Trap (Systemic Greed)
+                </div>
+                <ul className="text-xs text-slate-300 space-y-1.5 list-disc pl-4 leading-relaxed">
+                  <li>Trillions siphoned into corporate subsidies, high-frequency speculative manipulation, and offshore tax evasion.</li>
+                  <li>Over $1.5 Trillion consumed annually by bloated, humiliating welfare paperwork, means-testing agencies, and red tape.</li>
+                  <li>Elected representatives forced to prioritize donor capital over citizen health, education, and shelter.</li>
+                </ul>
+              </div>
+
+              <div className="p-5 rounded-xl bg-emerald-950/20 border border-emerald-500/30 space-y-2">
+                <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+                  <Sparkles className="w-4 h-4 text-emerald-400" />
+                  The UBLF Governance Paradigm (Sovereign Service)
+                </div>
+                <ul className="text-xs text-slate-300 space-y-1.5 list-disc pl-4 leading-relaxed">
+                  <li>Direct programmatic blockchain settlement to every citizen's Passkey wallet on the 1st of every month.</li>
+                  <li>Zero means-testing stigma; baseline dignity guaranteed as an inalienable birthright.</li>
+                  <li>Governments judged and re-elected solely on how effectively they advance clean infrastructure, safety, culture, and science.</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Interactive Macro Treaty Simulator Controls */}
+            <div className="p-5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm font-bold text-white">
+                  <Sliders className="w-4 h-4 text-amber-400" />
+                  Interactive World Government Treaty & Greed-Shift Simulator
+                </div>
+                <span className="text-xs font-mono font-bold text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/30">
+                  Global Baseline GDP: $105.00 Trillion USD
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {/* Control 1: Global GDP Pledge Rate */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-300 font-semibold flex items-center gap-1.5">
+                      <Globe2 className="w-3.5 h-3.5 text-blue-400" />
+                      Sovereign GDP Pledge Rate:
+                    </span>
+                    <span className="font-mono font-bold text-amber-400">{globalGdpPledgeRatePct.toFixed(1)}% of GDP</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="5.0"
+                    step="0.1"
+                    value={globalGdpPledgeRatePct}
+                    onChange={(e) => setGlobalGdpPledgeRatePct(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-400"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                    <span>0.5% ($525B/yr)</span>
+                    <span>1.8% ($1.89T/yr)</span>
+                    <span>5.0% ($5.25T/yr)</span>
+                  </div>
+                </div>
+
+                {/* Control 2: Speculative Greed Tax Rate */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-300 font-semibold flex items-center gap-1.5">
+                      <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                      Algorithmic Speculation Friction Tax:
+                    </span>
+                    <span className="font-mono font-bold text-emerald-400">{speculativeGreedTaxRatePct.toFixed(1)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="5.0"
+                    step="0.5"
+                    value={speculativeGreedTaxRatePct}
+                    onChange={(e) => setSpeculativeGreedTaxRatePct(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-400"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                    <span>0.5% (Light)</span>
+                    <span>2.5% (Optimal)</span>
+                    <span>5.0% (Aggressive Curb)</span>
+                  </div>
+                </div>
+
+                {/* Control 3: Bureaucracy Overhead Elimination */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-300 font-semibold flex items-center gap-1.5">
+                      <Zap className="w-3.5 h-3.5 text-cyan-400" />
+                      Red Tape Overhead Dissolution:
+                    </span>
+                    <span className="font-mono font-bold text-cyan-400">{bureaucracyEliminationRatePct}% automated</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="40"
+                    max="98"
+                    step="2"
+                    value={bureaucracyEliminationRatePct}
+                    onChange={(e) => setBureaucracyEliminationRatePct(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                    <span>40% Paperwork</span>
+                    <span>85% Autonomous</span>
+                    <span>98% Pure Smart Contract</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Instant Dynamic Yield Results Strip */}
+              <div className="p-4 rounded-xl bg-slate-900 border border-slate-700/80 flex flex-wrap items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Calculated Citizen Living Floor</div>
+                  <div className="text-xl sm:text-2xl font-mono font-extrabold text-emerald-400">
+                    ${ublfMetrics.baseMonthlyLivingFloorPerCitizenUsd.toLocaleString()} <span className="text-xs font-sans text-slate-300">/ mo per human</span>
+                  </div>
+                </div>
+
+                <div className="space-y-0.5">
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Total Greed & Waste Redirected</div>
+                  <div className="text-xl sm:text-2xl font-mono font-extrabold text-amber-400">
+                    ${(ublfMetrics.greedShiftRatio.capitalDivertedFromSpeculativeGreedUsd / 1_000_000_000_000).toFixed(2)} Trillion / yr
+                  </div>
+                </div>
+
+                <div className="space-y-0.5">
+                  <div className="text-[10px] uppercase font-bold text-slate-400">Global Liquidity Disbursed Monthly</div>
+                  <div className="text-xl sm:text-2xl font-mono font-extrabold text-cyan-400">
+                    ${(ublfMetrics.monthlyGlobalDistributableFundUsd / 1_000_000_000_000).toFixed(2)} Trillion / mo
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* 4 Core Governance Pillars of the Treaty */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {ublfMetrics.governanceProtocols.map((protocol, idx) => (
+              <div
+                key={idx}
+                className="p-5 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-amber-500/40 transition-all space-y-3 flex flex-col justify-between"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                      {idx === 0 && <Shield className="w-4 h-4 text-emerald-400" />}
+                      {idx === 1 && <Zap className="w-4 h-4 text-cyan-400" />}
+                      {idx === 2 && <TrendingUp className="w-4 h-4 text-amber-400" />}
+                      {idx === 3 && <HeartHandshake className="w-4 h-4 text-rose-400" />}
+                    </div>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                      Pillar 0{idx + 1}
+                    </span>
+                  </div>
+
+                  <h3 className="text-sm font-bold text-white">{protocol.title}</h3>
+                  <p className="text-xs text-amber-200/90 italic font-serif">"{protocol.axiom}"</p>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800/80 text-[11px] text-slate-300">
+                  <strong className="text-amber-400">Execution:</strong> {protocol.mechanism}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Sovereign Country Treaty Ledger & Pledge Registry */}
+          <div className="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+              <div>
+                <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">SOVEREIGN STATE PLEDGE REGISTRY</span>
+                <h3 className="text-lg sm:text-xl font-bold text-white mt-0.5">
+                  World Government Contributions & Citizen Guarantees
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  How individual nation-states route regular GDP shares into the Universal Basic Living Fund to guarantee living standards.
+                </p>
+              </div>
+
+              {/* Filter by Country */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400 font-medium">Filter Nation:</span>
+                <select
+                  value={selectedGovCountry}
+                  onChange={(e) => setSelectedGovCountry(e.target.value)}
+                  className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-400 cursor-pointer"
+                >
+                  <option value="ALL">All Participating Sovereign Nations ({sovereignGovernmentData.length})</option>
+                  {sovereignGovernmentData.map((c) => (
+                    <option key={c.countryCode} value={c.countryCode}>
+                      {c.flagEmoji} {c.countryName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Country Cards Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {sovereignGovernmentData
+                .filter((c) => selectedGovCountry === 'ALL' || c.countryCode === selectedGovCountry)
+                .map((c) => (
+                  <div
+                    key={c.countryCode}
+                    className="p-5 rounded-xl bg-slate-800/40 border border-slate-700/70 hover:border-amber-500/40 transition-all space-y-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-3xl">{c.flagEmoji}</span>
+                        <div>
+                          <h4 className="text-base font-bold text-white flex items-center gap-2">
+                            {c.countryName}
+                            <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-bold ${
+                              c.treatyStatus === 'Ratified Treaty'
+                                ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                                : c.treatyStatus === 'Parliamentary Review'
+                                ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                                : 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'
+                            }`}>
+                              {c.treatyStatus}
+                            </span>
+                          </h4>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            Annual GDP: <strong className="text-slate-200 font-mono">${c.gdpAnnualTrillionUsd.toFixed(2)}T</strong> • Population: <strong className="text-slate-200 font-mono">{c.populationMillion}M citizens</strong>
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <div className="text-[10px] text-slate-400 uppercase font-bold">Annual Inflow</div>
+                        <div className="text-sm font-mono font-bold text-amber-400">
+                          ${(c.annualContributionUsd / 1_000_000_000).toFixed(1)}B / yr
+                        </div>
+                        <div className="text-[10px] text-emerald-400 font-mono">
+                          ${(c.monthlyDisbursementToUBLFUsd / 1_000_000_000).toFixed(1)}B / mo
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Shift from Greed Performance Metrics */}
+                    <div className="grid grid-cols-3 gap-2 p-3 rounded-lg bg-slate-900/90 border border-slate-800 text-center">
+                      <div>
+                        <div className="text-[10px] text-slate-400">Lobbying Waste Reclaimed</div>
+                        <div className="text-xs font-mono font-bold text-rose-400">
+                          ${(c.shiftFromGreedMetric.divertedLobbyingAndWasteUsd / 1_000_000_000).toFixed(1)}B
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-slate-400">Paperwork Siphon Cut</div>
+                        <div className="text-xs font-mono font-bold text-cyan-400">
+                          ${(c.shiftFromGreedMetric.administrativeBureaucracySavedUsd / 1_000_000_000).toFixed(1)}B
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-slate-400">Direct Citizen Yield</div>
+                        <div className="text-xs font-mono font-bold text-emerald-400">
+                          {c.shiftFromGreedMetric.directCitizenYieldEfficiencyPct}% Direct
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Guaranteed Civic Pillars for Citizens */}
+                    <div className="space-y-1.5">
+                      <div className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                        Guaranteed Citizen Rights Under Treaty:
+                      </div>
+                      <div className="space-y-1">
+                        {c.civicPillarsGuaranteed.map((pillar, pIdx) => (
+                          <div key={pIdx} className="text-xs text-slate-300 flex items-start gap-2 pl-1">
+                            <span className="text-amber-400 font-bold">•</span>
+                            <span>{pillar}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+                ))}
+            </div>
+
+          </div>
+
+          {/* Theoretical Proof & Ratification Architecture */}
+          <div className="p-6 rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950/40 to-slate-950 border border-indigo-500/30 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-300 border border-indigo-500/30">
+                <BookOpen className="w-5 h-5 text-indigo-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">
+                  Why This System Can Initiate the Transition
+                </h3>
+                <p className="text-xs text-slate-300">
+                  Proof of Restitution (PoR) and zero-knowledge cryptographic smart contracts provide the exact neutral, non-corruptible ledger needed for sovereign governments to coordinate without trusting centralized intermediaries.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-300">
+              <div className="p-3.5 rounded-lg bg-slate-900/80 border border-slate-800 space-y-1">
+                <strong className="text-white block font-semibold">1. Zero Default Risk</strong>
+                <p className="text-[11px] text-slate-400">Contributions are automated via programmatic central bank digital currency (CBDC) or treasury repo settlements directly into the smart restitution pool.</p>
+              </div>
+
+              <div className="p-3.5 rounded-lg bg-slate-900/80 border border-slate-800 space-y-1">
+                <strong className="text-white block font-semibold">2. Biometric & Passkey Privacy</strong>
+                <p className="text-[11px] text-slate-400">Citizens claim their monthly living dividends using zero-knowledge proofs (zk-STARKs), guaranteeing that no government can spy on, track, or arbitrarily freeze citizen funds.</p>
+              </div>
+
+              <div className="p-3.5 rounded-lg bg-slate-900/80 border border-slate-800 space-y-1">
+                <strong className="text-white block font-semibold">3. Elimination of the Profit-from-Suffering Motive</strong>
+                <p className="text-[11px] text-slate-400">When basic food, energy, housing, and health are unconditionally funded through the UBLF commons, predatory monopolies collapse and true human flourishing commences.</p>
+              </div>
+            </div>
           </div>
 
         </div>

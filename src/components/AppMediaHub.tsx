@@ -3,6 +3,7 @@ import {
   Play, 
   Pause, 
   Volume2, 
+  VolumeX,
   ExternalLink, 
   BookOpen, 
   Music, 
@@ -35,7 +36,20 @@ import {
   X,
   RefreshCw,
   Cloud,
-  HardDrive
+  HardDrive,
+  Repeat,
+  Repeat1,
+  Shuffle,
+  SkipBack,
+  SkipForward,
+  Copy,
+  CheckCheck,
+  Mail,
+  Send,
+  MessageSquare,
+  Disc,
+  Headphones,
+  Info
 } from 'lucide-react';
 import { GeminiPodcastVideoStudio, MediaAsset } from './GeminiPodcastVideoStudio';
 import { compressImage } from '../utils/imageCompressor';
@@ -203,19 +217,306 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
     }
   ];
 
-  // 2. Playback & Video Collage State Control
+  // 2. Playback, Station Looping & Audio Engine State Control
   const [activeEpisode, setActiveEpisode] = useState<PodcastEpisode>(episodes[0]);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [playbackProgress, setPlaybackProgress] = useState<number>(35); // simulated percent
-  const [volume, setVolume] = useState<number>(80);
+  const [playbackProgress, setPlaybackProgress] = useState<number>(0);
+  const [currentTime, setCurrentTime] = useState<number>(0);
+  const [duration, setDuration] = useState<number>(0);
+  const [volume, setVolume] = useState<number>(85);
+  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [loopMode, setLoopMode] = useState<'station' | 'focused' | 'off'>('station');
+  const [isShuffle, setIsShuffle] = useState<boolean>(false);
   const [playerViewMode, setPlayerViewMode] = useState<'audio' | 'video_collage'>('video_collage');
   const [isGeminiStudioOpen, setIsGeminiStudioOpen] = useState<boolean>(false);
   const [geminiStudioInitialTab, setGeminiStudioInitialTab] = useState<'local' | 'drive'>('local');
+  const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
+  const [copiedLink, setCopiedLink] = useState<boolean>(false);
+  const [copiedEmbed, setCopiedEmbed] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Audio HTML5 and Web Audio Synthesizer references
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const synthCtxRef = useRef<AudioContext | null>(null);
+  const synthGainRef = useRef<GainNode | null>(null);
+  const synthOscTimerRef = useRef<any>(null);
 
   const handleOpenGeminiStudio = (tab: 'local' | 'drive' = 'local') => {
     setGeminiStudioInitialTab(tab);
     setIsGeminiStudioOpen(true);
+  };
+
+  // Check URL query parameters for deep linked episode on mount
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const epParam = params.get('episode');
+      if (epParam) {
+        const found = episodes.find((e) => e.id === epParam);
+        if (found) {
+          setActiveEpisode(found);
+          setIsPlaying(true);
+          setToastMessage(`Tuned in to "${found.title}"`);
+          setTimeout(() => setToastMessage(null), 4000);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  // Web Audio Synth for default episodes without uploaded MP3s
+  const startSynthesizerAudio = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!synthCtxRef.current || synthCtxRef.current.state === 'closed') {
+        synthCtxRef.current = new AudioCtx();
+      }
+      const ctx = synthCtxRef.current;
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+      if (!synthGainRef.current) {
+        synthGainRef.current = ctx.createGain();
+        synthGainRef.current.connect(ctx.destination);
+      }
+      const effectiveVol = isMuted ? 0 : (volume / 100) * 0.15;
+      synthGainRef.current.gain.setValueAtTime(effectiveVol, ctx.currentTime);
+
+      const chords = [
+        [220, 277.18, 329.63, 440],
+        [196, 246.94, 293.66, 392],
+        [174.61, 220, 261.63, 349.23],
+        [164.81, 207.65, 246.94, 329.63]
+      ];
+      let chordIdx = 0;
+
+      clearInterval(synthOscTimerRef.current);
+      synthOscTimerRef.current = setInterval(() => {
+        if (ctx.state === 'closed') return;
+        const currentChord = chords[chordIdx % chords.length];
+        chordIdx++;
+        currentChord.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const noteGain = ctx.createGain();
+          osc.type = i === 0 ? 'sine' : 'triangle';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime);
+          noteGain.gain.setValueAtTime(0, ctx.currentTime);
+          noteGain.gain.linearRampToValueAtTime(0.04, ctx.currentTime + 0.8);
+          noteGain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 3.8);
+
+          osc.connect(noteGain);
+          if (synthGainRef.current) {
+            noteGain.connect(synthGainRef.current);
+          }
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + 4.0);
+        });
+      }, 4000);
+    } catch (e) {
+      console.warn('Synth error:', e);
+    }
+  };
+
+  const stopSynthesizerAudio = () => {
+    clearInterval(synthOscTimerRef.current);
+    if (synthGainRef.current && synthCtxRef.current) {
+      try {
+        synthGainRef.current.gain.linearRampToValueAtTime(0, synthCtxRef.current.currentTime + 0.2);
+      } catch (e) {}
+    }
+  };
+
+  // Synchronize audio element and synthesizer with isPlaying & activeEpisode
+  useEffect(() => {
+    if (activeEpisode.audioUrl) {
+      stopSynthesizerAudio();
+      if (audioRef.current) {
+        if (audioRef.current.src !== activeEpisode.audioUrl) {
+          audioRef.current.src = activeEpisode.audioUrl;
+          audioRef.current.load();
+        }
+        audioRef.current.volume = isMuted ? 0 : volume / 100;
+        if (isPlaying) {
+          audioRef.current.play().catch((err) => {
+            console.warn('Audio play request interrupted:', err);
+          });
+        } else {
+          audioRef.current.pause();
+        }
+      }
+    } else {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      if (isPlaying) {
+        startSynthesizerAudio();
+      } else {
+        stopSynthesizerAudio();
+      }
+    }
+
+    return () => {
+      stopSynthesizerAudio();
+    };
+  }, [isPlaying, activeEpisode.audioUrl, activeEpisode.id]);
+
+  // Handle audio volume & mute updates
+  const handleVolumeChange = (newVol: number) => {
+    setVolume(newVol);
+    if (newVol > 0 && isMuted) {
+      setIsMuted(false);
+    }
+    if (audioRef.current) {
+      audioRef.current.volume = newVol / 100;
+    }
+    if (synthGainRef.current && synthCtxRef.current) {
+      synthGainRef.current.gain.setValueAtTime((newVol / 100) * 0.15, synthCtxRef.current.currentTime);
+    }
+  };
+
+  const toggleMute = () => {
+    const nextMuted = !isMuted;
+    setIsMuted(nextMuted);
+    if (audioRef.current) {
+      audioRef.current.volume = nextMuted ? 0 : volume / 100;
+    }
+    if (synthGainRef.current && synthCtxRef.current) {
+      synthGainRef.current.gain.setValueAtTime(nextMuted ? 0 : (volume / 100) * 0.15, synthCtxRef.current.currentTime);
+    }
+  };
+
+  // Handle track ending logic based on Loop Mode (Station vs Focused Loop)
+  const handleTrackEnded = () => {
+    if (loopMode === 'focused') {
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(() => {});
+      }
+      setPlaybackProgress(0);
+      setCurrentTime(0);
+      setToastMessage(`🔁 Repeating: "${activeEpisode.title}"`);
+      setTimeout(() => setToastMessage(null), 3000);
+    } else if (loopMode === 'station') {
+      const currentIndex = episodes.findIndex((e) => e.id === activeEpisode.id);
+      const nextIndex = isShuffle 
+        ? Math.floor(Math.random() * episodes.length) 
+        : (currentIndex + 1) % episodes.length;
+      const nextEp = episodes[nextIndex];
+      setActiveEpisode(nextEp);
+      setIsPlaying(true);
+      setPlaybackProgress(0);
+      setCurrentTime(0);
+      setToastMessage(`📻 Station Radio: Auto-advancing to "${nextEp.title}"`);
+      setTimeout(() => setToastMessage(null), 4000);
+    } else {
+      setIsPlaying(false);
+      setPlaybackProgress(100);
+    }
+  };
+
+  // Real audio element timeupdate listener
+  const handleAudioTimeUpdate = () => {
+    if (audioRef.current && audioRef.current.duration) {
+      const cur = audioRef.current.currentTime;
+      const dur = audioRef.current.duration;
+      setCurrentTime(cur);
+      setDuration(dur);
+      setPlaybackProgress((cur / dur) * 100);
+    }
+  };
+
+  const handleAudioLoadedMetadata = () => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration || 0);
+    }
+  };
+
+  // Progress timer for synthesized/fallback episodes
+  useEffect(() => {
+    let timer: any = null;
+    if (isPlaying && !activeEpisode.audioUrl) {
+      timer = setInterval(() => {
+        setPlaybackProgress((prev) => {
+          if (prev >= 100) {
+            handleTrackEnded();
+            return 0;
+          }
+          return prev + 0.6;
+        });
+        setCurrentTime((prev) => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isPlaying, activeEpisode.audioUrl, loopMode, isShuffle, episodes, activeEpisode.id]);
+
+  const handleScrubberClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickPercent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    setPlaybackProgress(clickPercent * 100);
+    if (audioRef.current && audioRef.current.duration) {
+      audioRef.current.currentTime = clickPercent * audioRef.current.duration;
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  };
+
+  const handleNextEpisode = () => {
+    const currentIndex = episodes.findIndex((e) => e.id === activeEpisode.id);
+    const nextIndex = isShuffle 
+      ? Math.floor(Math.random() * episodes.length) 
+      : (currentIndex + 1) % episodes.length;
+    const nextEp = episodes[nextIndex];
+    setActiveEpisode(nextEp);
+    setPlaybackProgress(0);
+    setCurrentTime(0);
+    setIsPlaying(true);
+    setToastMessage(`Tuned in to: "${nextEp.title}"`);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handlePrevEpisode = () => {
+    const currentIndex = episodes.findIndex((e) => e.id === activeEpisode.id);
+    const prevIndex = (currentIndex - 1 + episodes.length) % episodes.length;
+    const prevEp = episodes[prevIndex];
+    setActiveEpisode(prevEp);
+    setPlaybackProgress(0);
+    setCurrentTime(0);
+    setIsPlaying(true);
+    setToastMessage(`Tuned in to: "${prevEp.title}"`);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const formatSeconds = (sec: number) => {
+    if (isNaN(sec) || sec <= 0) return '00:00';
+    const mins = Math.floor(sec / 60);
+    const secs = Math.floor(sec % 60);
+    return `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  const getEpisodeShareUrl = (epId: string) => {
+    const origin = window.location.origin;
+    const path = window.location.pathname;
+    return `${origin}${path}?tab=media-hub&episode=${encodeURIComponent(epId)}`;
+  };
+
+  const handleShareEpisode = async () => {
+    const shareUrl = getEpisodeShareUrl(activeEpisode.id);
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${activeEpisode.title} | The H.U.M.A.N. Protocol Broadcast Matrix`,
+          text: `${activeEpisode.title} — ${activeEpisode.introduction}`,
+          url: shareUrl
+        });
+        setToastMessage('Shared episode link successfully!');
+        setTimeout(() => setToastMessage(null), 3000);
+        return;
+      } catch (e) {
+        // Fall back to modal
+      }
+    }
+    setIsShareModalOpen(true);
   };
 
   // 2.1 Custom App Logos State & Persistence (Protected against LocalStorage quota overflow)
@@ -238,7 +539,6 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
 
   const handleSaveCustomLogo = async (appId: string, url: string) => {
     let optimizedUrl = url;
-    // If it's a base64 data URL or long image string, compress it to keep under quota
     if (url.startsWith('data:image/')) {
       try {
         optimizedUrl = await compressImage(url, 256, 256, 0.85);
@@ -289,7 +589,6 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
 
     setLogoUploadError(null);
     try {
-      // Automatically compress and resize image to compact 256x256 WebP/PNG (~5-15KB)
       const compressedDataUrl = await compressImage(file, 256, 256, 0.85);
       await handleSaveCustomLogo(appId, compressedDataUrl);
     } catch (err: any) {
@@ -329,17 +628,6 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
   const [activeCollageIndex, setActiveCollageIndex] = useState<number>(0);
   const [currentCollageStyle, setCurrentCollageStyle] = useState<string>('bento');
 
-  // Audio simulation timer
-  useEffect(() => {
-    let timer: any = null;
-    if (isPlaying) {
-      timer = setInterval(() => {
-        setPlaybackProgress((prev) => (prev >= 100 ? 0 : prev + 1));
-      }, 1000);
-    }
-    return () => clearInterval(timer);
-  }, [isPlaying]);
-
   // Slideshow timer for background collage in player
   useEffect(() => {
     if (!isPlaying) return;
@@ -355,8 +643,11 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
 
   const handleEpisodeSelect = (episode: PodcastEpisode) => {
     setActiveEpisode(episode);
-    setIsPlaying(false);
     setPlaybackProgress(0);
+    setCurrentTime(0);
+    setIsPlaying(true);
+    setToastMessage(`Focused on "${episode.title}"`);
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
   const handlePublishFromStudio = (newEp: PodcastEpisode, assets: MediaAsset[], style: string) => {
@@ -366,6 +657,7 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
     setCurrentCollageStyle(style);
     setIsPlaying(true);
     setPlaybackProgress(0);
+    setCurrentTime(0);
     
     const existing = safeGetJSON<PodcastEpisode[]>('human_gemini_podcasts', []);
     safeSetJSON('human_gemini_podcasts', [newEp, ...existing]);
@@ -644,16 +936,25 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
             </div>
           </div>
 
-          {/* RIGHT SIDE: Interactive Video Previewer & Player Card */}
+          {/* RIGHT SIDE: Interactive Video Previewer, Radio Station Player & Audio Engine */}
           <div className="lg:col-span-5 bg-slate-900/40 border border-slate-850 p-5 rounded-3xl relative overflow-hidden shadow-2xl backdrop-blur-sm">
             
-            {/* Mode Switcher Banner: Audio vs Video Collage */}
-            <div className="flex items-center justify-between mb-3">
+            {/* Real Audio Element for actual playback with volume & station looping */}
+            <audio 
+              ref={audioRef}
+              onTimeUpdate={handleAudioTimeUpdate}
+              onLoadedMetadata={handleAudioLoadedMetadata}
+              onEnded={handleTrackEnded}
+              className="hidden"
+            />
+
+            {/* Mode Switcher Banner: Audio vs Video Collage & Station Mode Header */}
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <div className="flex items-center space-x-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px] font-mono">
                 <button
                   onClick={() => setPlayerViewMode('video_collage')}
                   className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
-                    playerViewMode === 'video_collage' ? 'bg-emerald-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'
+                    playerViewMode === 'video_collage' ? 'bg-emerald-500 text-slate-950 font-bold shadow-xs' : 'text-slate-400 hover:text-white'
                   }`}
                 >
                   <Film className="w-3 h-3" />
@@ -662,7 +963,7 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
                 <button
                   onClick={() => setPlayerViewMode('audio')}
                   className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
-                    playerViewMode === 'audio' ? 'bg-emerald-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'
+                    playerViewMode === 'audio' ? 'bg-emerald-500 text-slate-950 font-bold shadow-xs' : 'text-slate-400 hover:text-white'
                   }`}
                 >
                   <Radio className="w-3 h-3" />
@@ -670,14 +971,57 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
                 </button>
               </div>
 
-              <button
-                onClick={() => setIsGeminiStudioOpen(true)}
-                className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 cursor-pointer bg-cyan-950/40 border border-cyan-800/40 px-2 py-1 rounded-lg"
-                title="Open Studio"
-              >
-                <Sparkles className="w-3 h-3" />
-                <span>Open Studio</span>
-              </button>
+              <div className="flex items-center space-x-1.5">
+                {/* Station Mode Toggle Button */}
+                <button
+                  onClick={() => {
+                    const nextMode = loopMode === 'station' ? 'focused' : loopMode === 'focused' ? 'off' : 'station';
+                    setLoopMode(nextMode);
+                    setToastMessage(
+                      nextMode === 'station' 
+                        ? '📻 Sovereign Radio: Continuous Station Loop Active (Auto-advance all)' 
+                        : nextMode === 'focused' 
+                        ? '🔁 Focus Mode: Repeating Active Episode in Loop' 
+                        : '⏹️ Single Playback (No Loop)'
+                    );
+                    setTimeout(() => setToastMessage(null), 3500);
+                  }}
+                  className={`text-[11px] font-mono flex items-center space-x-1 px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                    loopMode === 'station'
+                      ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 font-bold'
+                      : loopMode === 'focused'
+                      ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300 font-bold'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                  title={loopMode === 'station' ? 'Station Loop: Auto-cycles all matrix episodes continuously' : loopMode === 'focused' ? 'Focused Loop: Repeats current episode' : 'Loop Off: Stops at track end'}
+                >
+                  {loopMode === 'station' ? (
+                    <>
+                      <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
+                      <span>Station Loop</span>
+                    </>
+                  ) : loopMode === 'focused' ? (
+                    <>
+                      <Repeat1 className="w-3 h-3 text-cyan-400" />
+                      <span>Focus Loop</span>
+                    </>
+                  ) : (
+                    <>
+                      <Repeat className="w-3 h-3 text-slate-500" />
+                      <span>Play Once</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setIsGeminiStudioOpen(true)}
+                  className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 cursor-pointer bg-cyan-950/40 border border-cyan-800/40 px-2 py-1 rounded-lg"
+                  title="Open Studio"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span>Studio</span>
+                </button>
+              </div>
             </div>
             
             {/* Custom Interactive Player Card with Video Background Collage */}
@@ -711,9 +1055,9 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
 
                   {/* Top Badge Overlay */}
                   <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
-                    <span className="text-[9px] font-mono text-emerald-300 bg-slate-950/90 border border-emerald-500/40 px-2 py-0.5 rounded-md flex items-center space-x-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                      <span>LIVE COLLAGE REEL</span>
+                    <span className="text-[9px] font-mono text-emerald-300 bg-slate-950/90 border border-emerald-500/40 px-2 py-0.5 rounded-md flex items-center space-x-1.5 shadow-sm">
+                      <span className={`w-1.5 h-1.5 rounded-full ${isPlaying ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'}`} />
+                      <span>{loopMode === 'station' ? '24/7 STATION RADIO LOOP' : 'LIVE COLLAGE REEL'}</span>
                     </span>
                     <span className="text-[9px] font-mono text-slate-300 bg-slate-950/90 border border-slate-800 px-2 py-0.5 rounded-md">
                       C2PA Verified
@@ -737,12 +1081,25 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
 
               {/* Title & Metadata */}
               <div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-[10px] font-mono uppercase text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
-                    {activeEpisode.category}
-                  </span>
-                  <span className="text-xs text-slate-500 font-mono">
-                    {activeEpisode.duration}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[10px] font-mono uppercase text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
+                      {activeEpisode.category}
+                    </span>
+                    {activeEpisode.audioUrl ? (
+                      <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/15 border border-cyan-500/30 px-1.5 py-0.5 rounded flex items-center space-x-1">
+                        <Headphones className="w-2.5 h-2.5" />
+                        <span>Voice Track</span>
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded flex items-center space-x-1">
+                        <Disc className="w-2.5 h-2.5" />
+                        <span>Ambient Protocol</span>
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-slate-400 font-mono">
+                    {formatSeconds(currentTime)} / {activeEpisode.audioUrl && duration > 0 ? formatSeconds(duration) : activeEpisode.duration}
                   </span>
                 </div>
                 <h3 className="text-lg font-bold tracking-tight text-slate-100 line-clamp-1 mt-1">
@@ -768,34 +1125,89 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
                 </div>
               )}
 
-              {/* Scrubber Bar */}
-              <div className="relative h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
-                <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-500 to-cyan-400" style={{ width: `${playbackProgress}%` }} />
+              {/* Interactive Scrubber Bar with Click/Drag Seeking */}
+              <div 
+                onClick={handleScrubberClick}
+                className="relative h-2 w-full bg-slate-800 hover:bg-slate-750 rounded-full overflow-hidden cursor-pointer group transition-all"
+                title="Click to seek position"
+              >
+                <div 
+                  className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-500 to-cyan-400 transition-all duration-150" 
+                  style={{ width: `${Math.min(100, Math.max(0, playbackProgress))}%` }} 
+                />
               </div>
 
-              {/* Player Controls */}
-              <div className="flex items-center justify-between pt-1">
-                <div className="flex items-center space-x-3">
+              {/* Comprehensive Audio Player Controls */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                
+                {/* Left Controls: Prev, Play/Pause, Next */}
+                <div className="flex items-center space-x-2">
+                  <button 
+                    onClick={handlePrevEpisode}
+                    className="w-8 h-8 rounded-full bg-slate-950 border border-slate-800 hover:border-slate-700 hover:text-emerald-400 text-slate-300 flex items-center justify-center transition-all cursor-pointer"
+                    title="Previous Episode"
+                  >
+                    <SkipBack className="w-3.5 h-3.5" />
+                  </button>
+
                   <button 
                     onClick={togglePlayback}
                     className="w-10 h-10 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-full flex items-center justify-center font-bold transition-all transform active:scale-95 shadow-md shadow-emerald-500/20 cursor-pointer"
+                    title={isPlaying ? 'Pause' : 'Play Audio Broadcast'}
                   >
                     {isPlaying ? <Pause className="w-4 h-4 fill-slate-950" /> : <Play className="w-4 h-4 fill-slate-950 ml-0.5" />}
                   </button>
-                  <div className="flex items-center space-x-1.5 text-slate-400">
-                    <Volume2 className="w-4 h-4" />
+
+                  <button 
+                    onClick={handleNextEpisode}
+                    className="w-8 h-8 rounded-full bg-slate-950 border border-slate-800 hover:border-slate-700 hover:text-emerald-400 text-slate-300 flex items-center justify-center transition-all cursor-pointer"
+                    title="Next Episode"
+                  >
+                    <SkipForward className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* Volume Slider with Mute Toggle */}
+                  <div className="flex items-center space-x-1.5 text-slate-400 bg-slate-950/80 border border-slate-800/80 px-2 py-1 rounded-lg">
+                    <button 
+                      onClick={toggleMute}
+                      className="hover:text-emerald-400 transition-colors cursor-pointer"
+                      title={isMuted ? 'Unmute' : 'Mute'}
+                    >
+                      {isMuted || volume === 0 ? <VolumeX className="w-3.5 h-3.5 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5" />}
+                    </button>
                     <input 
                       type="range" 
                       min="0" 
                       max="100" 
-                      value={volume} 
-                      onChange={(e) => setVolume(Number(e.target.value))}
+                      value={isMuted ? 0 : volume} 
+                      onChange={(e) => handleVolumeChange(Number(e.target.value))}
                       className="w-14 accent-emerald-500 h-1 bg-slate-800 rounded-lg outline-none cursor-pointer" 
+                      title={`Volume: ${isMuted ? 0 : volume}%`}
                     />
+                    <span className="text-[10px] font-mono text-slate-500 w-5 text-right">
+                      {isMuted ? '0' : volume}%
+                    </span>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                {/* Right Controls: Shuffle, Collage, Share */}
+                <div className="flex items-center space-x-1.5">
+                  <button 
+                    onClick={() => {
+                      setIsShuffle(!isShuffle);
+                      setToastMessage(!isShuffle ? '🔀 Matrix Shuffle: Randomized Station Queue' : '▶️ Sequential Station Order');
+                      setTimeout(() => setToastMessage(null), 3000);
+                    }}
+                    className={`p-1.5 border rounded-lg transition-all cursor-pointer ${
+                      isShuffle 
+                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' 
+                        : 'border-slate-800 hover:border-slate-700 bg-slate-950 text-slate-400 hover:text-slate-200'
+                    }`}
+                    title={isShuffle ? 'Shuffle enabled' : 'Shuffle disabled'}
+                  >
+                    <Shuffle className="w-3.5 h-3.5" />
+                  </button>
+
                   <button 
                     onClick={() => setIsGeminiStudioOpen(true)}
                     className="px-2.5 py-1.5 border border-slate-800 hover:border-slate-700 bg-slate-950 rounded-lg text-slate-300 text-xs font-mono flex items-center space-x-1 hover:text-emerald-400 transition-all cursor-pointer"
@@ -804,14 +1216,17 @@ export const AppMediaHub: React.FC<AppMediaHubProps> = ({
                     <Sliders className="w-3.5 h-3.5" />
                     <span>Collage</span>
                   </button>
+
                   <button 
-                    onClick={() => alert(`Sharing Link for: ${activeEpisode.title}`)}
-                    className="p-1.5 border border-slate-800 hover:border-slate-700 bg-slate-950 rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
-                    title="Share Episode"
+                    onClick={handleShareEpisode}
+                    className="p-1.5 border border-slate-800 hover:border-emerald-500/50 bg-slate-950 hover:bg-emerald-500/10 rounded-lg text-slate-400 hover:text-emerald-300 transition-all cursor-pointer flex items-center space-x-1"
+                    title="Share Podcast & Station Link"
                   >
-                    <Share2 className="w-4 h-4" />
+                    <Share2 className="w-3.5 h-3.5" />
+                    <span className="text-xs font-mono hidden sm:inline">Share</span>
                   </button>
                 </div>
+
               </div>
 
             </div>
@@ -1329,6 +1744,126 @@ await sdk.initialize();`}
                 className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono font-bold text-xs transition-all shadow-md cursor-pointer"
               >
                 Done
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* 2.4 Share Broadcast Station & Episode Modal */}
+      {isShareModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl space-y-0">
+            
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                  <Share2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-100">Broadcast Station Link</h3>
+                  <p className="text-xs text-slate-400 font-mono">Deep-link to this episode & continuous radio loop</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsShareModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-5">
+              
+              {/* Episode Preview Pill */}
+              <div className="p-4 bg-slate-950/70 border border-slate-800/80 rounded-2xl flex items-center space-x-3.5">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-300 font-bold shrink-0">
+                  <Radio className="w-6 h-6 animate-pulse" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] font-mono text-emerald-400 uppercase bg-emerald-500/10 px-2 py-0.5 rounded">
+                    {activeEpisode.category}
+                  </span>
+                  <h4 className="text-sm font-bold text-slate-100 truncate mt-0.5">{activeEpisode.title}</h4>
+                  <p className="text-[11px] font-mono text-slate-400">{activeEpisode.duration} • 24/7 Sovereign Radio Loop</p>
+                </div>
+              </div>
+
+              {/* Direct Share URL Box */}
+              {(() => {
+                const shareUrl = getEpisodeShareUrl(activeEpisode.id);
+                const copyShareUrl = async () => {
+                  try {
+                    await navigator.clipboard.writeText(shareUrl);
+                    setCopiedLink(true);
+                    setTimeout(() => setCopiedLink(false), 2500);
+                  } catch (e) {
+                    console.error(e);
+                  }
+                };
+
+                return (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-xs font-mono text-slate-300 font-semibold flex items-center justify-between">
+                        <span>Episode Deep Link</span>
+                        {copiedLink && <span className="text-emerald-400">✓ Copied to clipboard!</span>}
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          readOnly
+                          value={shareUrl}
+                          className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-300 select-all outline-none"
+                        />
+                        <button
+                          onClick={copyShareUrl}
+                          className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono font-bold text-xs rounded-xl transition-all flex items-center space-x-1.5 cursor-pointer shadow-md shadow-emerald-500/10"
+                        >
+                          {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{copiedLink ? 'Copied' : 'Copy Link'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Social Quick Share */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-mono text-slate-400 font-semibold">Quick Share Channels</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <a
+                          href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Tune into "${activeEpisode.title}" on the Broadcast Matrix:`)}&url=${encodeURIComponent(shareUrl)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-3 bg-slate-950 hover:bg-slate-800/80 border border-slate-800 rounded-xl text-xs font-mono text-slate-200 flex items-center justify-center space-x-2 transition-all"
+                        >
+                          <span>𝕏 Post on Twitter</span>
+                        </a>
+                        <a
+                          href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-3 bg-slate-950 hover:bg-slate-800/80 border border-slate-800 rounded-xl text-xs font-mono text-slate-200 flex items-center justify-center space-x-2 transition-all"
+                        >
+                          <span>💼 Share on LinkedIn</span>
+                        </a>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-slate-800 bg-slate-950/40 flex justify-end">
+              <button
+                onClick={() => setIsShareModalOpen(false)}
+                className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono font-bold text-xs transition-all cursor-pointer"
+              >
+                Close
               </button>
             </div>
 

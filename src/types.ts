@@ -856,6 +856,51 @@ export interface MasterPlanReferenceData {
   }[];
 }
 
+// =========================================================================
+// UNIVERSAL BASIC LIVING FUND (UBLF) & SOVEREIGN STATE DONATION ENGINE TYPES
+// =========================================================================
+
+export type GovernmentDonationTier = 'Sovereign Core (3-5% GDP)' | 'Standard Treaty (1-2% GDP)' | 'Emerging Contributor (0.5% GDP)' | 'Observer / Phase-In';
+
+export interface SovereignGovernmentPledge {
+  countryCode: string;
+  countryName: string;
+  flagEmoji: string;
+  gdpAnnualTrillionUsd: number;
+  pledgeRatePct: number; // e.g. 1.5%
+  annualContributionUsd: number;
+  monthlyDisbursementToUBLFUsd: number;
+  populationMillion: number;
+  citizenMonthlyFloorUsd: number;
+  treatyStatus: 'Ratified Treaty' | 'Parliamentary Review' | 'Bilateral Accord' | 'Simulated Pledge';
+  shiftFromGreedMetric: {
+    divertedLobbyingAndWasteUsd: number;
+    administrativeBureaucracySavedUsd: number;
+    directCitizenYieldEfficiencyPct: number; // e.g. 98.4% direct to citizens (vs 30% in legacy bureaucracy)
+  };
+  civicPillarsGuaranteed: string[];
+}
+
+export interface UniversalBasicLivingFundMetrics {
+  totalGlobalGdpBaselineUsd: number; // ~$105 Trillion USD
+  participatingGovernmentsCount: number;
+  aggregateAnnualGovernmentContributionsUsd: number;
+  monthlyGlobalDistributableFundUsd: number;
+  globalCitizenBeneficiariesCount: number;
+  baseMonthlyLivingFloorPerCitizenUsd: number;
+  greedShiftRatio: {
+    capitalDivertedFromSpeculativeGreedUsd: number;
+    bureaucracyOverheadEliminatedUsd: number;
+    directCitizenValueRatio: string; // e.g. 98.6% direct liquidity
+  };
+  governanceProtocols: {
+    title: string;
+    axiom: string;
+    mechanism: string;
+    iconName: string;
+  }[];
+}
+
 
 
 
