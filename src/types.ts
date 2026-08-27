@@ -901,6 +901,32 @@ export interface UniversalBasicLivingFundMetrics {
   }[];
 }
 
+// =========================================================================
+// 10-YEAR GLOBAL PROSPERITY PROJECTION (50% ROYALTY SPLIT ADOPTION)
+// =========================================================================
+
+export interface GlobalProsperityYearData {
+  year: number; // 1 to 10
+  calendarYear: number; // 2026 to 2035
+  globalRoyaltyAdoptionPct: number; // e.g. 15% -> 96%
+  extremePovertyRatePct: number; // e.g. 8.5% -> 0.2%
+  moderatePovertyRatePct: number; // e.g. 28.4% -> 2.1%
+  annualRoyaltiesDistributedTrillionUsd: number; // e.g. $0.48T -> $5.85T
+  cumulativeRoyaltiesDistributedTrillionUsd: number; // cumulative sum
+  medianCitizenMonthlyLivingFloorUsd: number; // e.g. $1,450 -> $2,420
+  globalLivingSecurityIndex: number; // 0-100 score (e.g. 24 -> 94)
+  childLaborReductionPct: number; // e.g. 0% -> 98.5% eradicated
+}
+
+export interface GlobalProsperityProjectionSummary {
+  adoptionScenario: 'Baseline Accord' | 'Accelerated Treaty' | 'Conservative Organic';
+  tenYearTotalRoyaltyDistributedTrillionUsd: number;
+  extremePovertyEliminatedPct: number;
+  moderatePovertyReductionPct: number;
+  livesLiftedAboveLivingFloorMillion: number;
+  royaltySplitRatioDescription: string; // e.g. "50% Creator & Citizen Revenue Covenant"
+}
+
 
 
 
