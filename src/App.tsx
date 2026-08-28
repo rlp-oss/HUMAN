@@ -29,6 +29,7 @@ import { SideMenuTaskbar } from './components/SideMenuTaskbar';
 import { UniversalThemeHubModal } from './components/UniversalThemeHubModal';
 import { MasterAdminColorStudio } from './components/MasterAdminColorStudio';
 import { GoogleDriveManagerModal } from './components/GoogleDriveManagerModal';
+import HunterAuthGateway from '../HunterAuthGateway';
 import { ThemeProvider } from './context/ThemeContext';
 import { 
   Tester, 
@@ -96,6 +97,7 @@ function AppContent() {
     if (hash === 'technical-ai' || path.includes('/technical-ai') || tabParam === 'technical-ai') return 'technical-ai';
     if (hash === 'crypto-valuation' || hash === 'crypto' || path.includes('/crypto') || tabParam === 'crypto-valuation') return 'crypto-valuation';
     if (hash === 'crypto-wallet' || hash === 'wallet' || path.includes('/wallet') || tabParam === 'crypto-wallet' || tabParam === 'wallet') return 'crypto-wallet';
+    if (hash === 'hunter' || hash === 'treasure-hunt' || hash === 'decoder' || path.includes('/hunter') || path.includes('/treasure-hunt') || tabParam === 'hunter' || tabParam === 'treasure-hunt' || tabParam === 'decoder') return 'hunter';
     if (hash === 'merchants' || path.includes('/merchants')) return 'merchants';
     if (hash === 'developer-embed' || hash === 'developers' || path.includes('/developers') || path.includes('/embed')) return 'developer-embed';
     if (hash === 'testers' || path.includes('/testers')) return 'testers';
@@ -312,6 +314,10 @@ function AppContent() {
               <MerchantStorePortal
                 onNavigateToInitiative={() => handleTabChange('initiative')}
               />
+            )}
+
+            {activeTab === 'hunter' && (
+              <HunterAuthGateway />
             )}
 
             {activeTab === 'portal' && (

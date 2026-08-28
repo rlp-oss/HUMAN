@@ -1,8 +1,12 @@
 import express, { Request, Response, NextFunction } from 'express';
-import * as admin from 'firebase-admin';
+import { initializeApp, getApps } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 import { HunterRegistryService } from './HunterRegistryService';
 
 const router = express.Router();
+if (getApps().length === 0) {
+  initializeApp();
+}
 const registry = new HunterRegistryService();
 
 /**
@@ -17,7 +21,8 @@ async function verifyGoogleAuth(req: Request, res: Response, next: NextFunction)
 
   const idToken = authHeader.split('Bearer ')[1];
   try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const auth = getAuth();
+    const decodedToken = await auth.verifyIdToken(idToken);
     req.body.uid = decodedToken.uid;
     req.body.email = decodedToken.email;
     next();

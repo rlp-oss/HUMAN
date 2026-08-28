@@ -1,26 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, signInWithPopup, GoogleAuthProvider, User, signOut } from 'firebase/auth';
-import { Shield, Fingerprint, LogIn, Award, Users, ChevronRight, Lock, EyeOff } from 'lucide-react';
+import { User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import { auth, googleProvider } from './src/lib/firebase';
+import { Shield, Fingerprint, LogIn, Award, Users, ChevronRight, Lock, EyeOff, Sparkles, Terminal, CheckCircle2 } from 'lucide-react';
 import TreasureHuntDecoder from './TreasureHuntDecoder';
-
-// Minimal Firebase configuration - points to client environment configuration
-const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.REACT_APP_FIREBASE_APP_ID,
-};
-
-// Initialize client Firebase SDK safely
-if (getApps().length === 0) {
-  initializeApp(firebaseConfig);
-}
-
-const auth = getAuth();
-const googleProvider = new GoogleAuthProvider();
 
 export default function HunterAuthGateway() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -29,11 +11,11 @@ export default function HunterAuthGateway() {
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       setLoading(false);
     });
-    return unsubscribe;
+    return () => unsubscribe();
   }, []);
 
   const handleGoogleSignIn = async () => {

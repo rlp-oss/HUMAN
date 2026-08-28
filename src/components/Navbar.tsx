@@ -31,7 +31,9 @@ import {
   Compass,
   Cpu,
   Coins,
-  Radio
+  Radio,
+  Trophy,
+  Fingerprint
 } from 'lucide-react';
 import { HumanLogo, HumanProtocolLogo } from './HumanLogo';
 import { TopUninvasiveTrustBadge } from './UninvasiveTrustBadge';
@@ -51,6 +53,7 @@ export type ActiveTab =
   | 'portal'
   | 'technical-ai'
   | 'crypto-valuation'
+  | 'hunter'
   | 'testers' 
   | 'claims' 
   | 'payouts'
@@ -174,6 +177,14 @@ export const Navbar: React.FC<NavbarProps> = ({
       icon: Store, 
       badge: '1% Pledge',
       badgeColor: 'text-[#3D6E50]'
+    },
+    { 
+      id: 'hunter' as ActiveTab, 
+      label: 'Hunter Guild (Treasure Hunt)', 
+      icon: Fingerprint, 
+      badge: '15 Chapters',
+      highlight: true,
+      badgeColor: 'text-[#10B981]'
     },
     { 
       id: 'portal' as ActiveTab, 

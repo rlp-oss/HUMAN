@@ -1,4 +1,6 @@
-import * as admin from 'firebase-admin';
+import { initializeApp, getApps } from 'firebase-admin/app';
+import { getFirestore, Timestamp, Firestore } from 'firebase-admin/firestore';
+import crypto from 'crypto';
 
 /**
  * Interface representing an active Hunter in the 15-Chapter Treasure Hunt.
@@ -8,29 +10,29 @@ export interface HunterProfile {
   uid: string;                 // Secure Google UID
   displayName: string;         // Public pseudonym or display name
   emailHash: string;           // SHA-256 hashed email to protect hunter identity
-  registeredAt: admin.firestore.Timestamp;
+  registeredAt: Timestamp;
   currentChapter: number;      // Tracking progression (1-15)
   unlockedKeys: {
     [chapterNumber: number]: {
-      decryptedAt: admin.firestore.Timestamp;
+      decryptedAt: Timestamp;
       keyUsed: string;
       attemptsCount: number;
     }
   };
   telemetry: {
-    lastActiveAt: admin.firestore.Timestamp;
+    lastActiveAt: Timestamp;
     deviceType: string;
   };
 }
 
 export class HunterRegistryService {
-  private db: admin.firestore.Firestore;
+  private db: Firestore;
 
   constructor() {
-    if (admin.apps.length === 0) {
-      admin.initializeApp();
+    if (getApps().length === 0) {
+      initializeApp();
     }
-    this.db = admin.firestore();
+    this.db = getFirestore();
   }
 
   /**
@@ -44,7 +46,6 @@ export class HunterRegistryService {
     userAgent: string
   ): Promise<HunterProfile> {
     // Generate a secure, irreversible cryptographic hash of the email to preserve privacy
-    const crypto = require('crypto');
     const emailHash = crypto.createHash('sha256').update(rawEmail.toLowerCase().trim()).digest('hex');
     
     const hunterRef = this.db.collection('hunters').doc(uid);
@@ -57,11 +58,11 @@ export class HunterRegistryService {
         const currentData = doc.data() as HunterProfile;
         const updatedTelemetry = {
           ...currentData.telemetry,
-          lastActiveAt: admin.firestore.Timestamp.now()
+          lastActiveAt: Timestamp.now()
         };
 
         transaction.update(hunterRef, {
-          'telemetry.lastActiveAt': admin.firestore.Timestamp.now()
+          'telemetry.lastActiveAt': Timestamp.now()
         });
 
         return {
@@ -75,11 +76,11 @@ export class HunterRegistryService {
         uid,
         displayName: displayName || 'Anonymous Hunter',
         emailHash,
-        registeredAt: admin.firestore.Timestamp.now(),
+        registeredAt: Timestamp.now(),
         currentChapter: 1,
         unlockedKeys: {},
         telemetry: {
-          lastActiveAt: admin.firestore.Timestamp.now(),
+          lastActiveAt: Timestamp.now(),
           deviceType: userAgent.includes('Mobi') ? 'mobile' : 'desktop'
         }
       };
@@ -116,7 +117,7 @@ export class HunterRegistryService {
         const updatedKeys = {
           ...currentData.unlockedKeys,
           [chapterSolved]: {
-            decryptedAt: admin.firestore.Timestamp.now(),
+            decryptedAt: Timestamp.now(),
             keyUsed: keyUsed.toLowerCase().trim(),
             attemptsCount: attempts
           }
@@ -125,7 +126,7 @@ export class HunterRegistryService {
         transaction.update(hunterRef, {
           currentChapter: targetChapter,
           unlockedKeys: updatedKeys,
-          'telemetry.lastActiveAt': admin.firestore.Timestamp.now()
+          'telemetry.lastActiveAt': Timestamp.now()
         });
       });
 

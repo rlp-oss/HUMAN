@@ -6,6 +6,7 @@ import Stripe from "stripe";
 import { db } from "./src/db/index.ts";
 import { users, testers, feedback, broadcasts, creatorClaims, driveBackups } from "./src/db/schema.ts";
 import { eq, desc } from "drizzle-orm";
+import hunterRouter from "./register-hunter-endpoint.ts";
 
 // Lazy Gemini client helper
 let aiClient: GoogleGenAI | null = null;
@@ -56,6 +57,8 @@ async function startServer() {
   });
 
   // API Routes
+  app.use("/api/hunters", hunterRouter);
+
   app.get("/api/health", (req, res) => {
     res.json({ 
       status: "ok", 

@@ -17,7 +17,8 @@ import {
   Lock,
   Sparkles,
   BookOpen,
-  Radio
+  Radio,
+  Fingerprint
 } from 'lucide-react';
 import { ActiveTab } from './Navbar';
 import { useTheme } from '../context/ThemeContext';
@@ -85,6 +86,17 @@ const DIRECTORY_ITEMS: NavDirectoryItem[] = [
     badge: 'Merchant Terminal',
     badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-500/30',
     icon: Store
+  },
+  {
+    id: 'hunter',
+    title: 'Hunter Guild & 15-Chapter Treasure Hunt',
+    category: 'public',
+    audience: 'Treasure Seekers, Hunters & Codebreakers',
+    urlPath: '/hunter or ?tab=hunter (#hunter)',
+    description: 'The underground coordination node and 15-chapter cryptographic proof-of-humanity decoder with Google Sign-In and progress telemetry.',
+    badge: '15 Chapters',
+    badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+    icon: Fingerprint
   },
 
   // 2. Creators & Rightsholders
