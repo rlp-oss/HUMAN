@@ -119,4 +119,4 @@ Let's execute the upgrade.
 
 ---
 *Governed by the H.U.M.A.N. Protocol Non-Profit Foundation & Global Ethical AI Registry Authority.*  
-*Data Protection Officer: Cody Germain | legal@human-protocol.org*
+*Data Protection Officer: Cody Germain | humaninitiative2026@gmail.com*
