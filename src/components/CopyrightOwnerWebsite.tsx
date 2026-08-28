@@ -514,10 +514,10 @@ export const CopyrightOwnerWebsite: React.FC<CopyrightOwnerWebsiteProps> = ({
               <button
                 onClick={onOpenBadgeModal}
                 className="px-3 py-1 rounded-lg bg-[#FFFFFF] hover:bg-[#FAF8F5] border border-[#5A5A40]/40 text-[#5A5A40] hover:text-[#2D2926] flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs font-sans font-semibold"
-                title="Upload custom logo & configure official badge"
+                title="Configure official verification badge"
               >
                 <Palette className="w-3.5 h-3.5 text-[#5A5A40]" />
-                <span>Upload Logo & Badge</span>
+                <span>Verification Badge</span>
               </button>
             )}
 

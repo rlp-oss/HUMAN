@@ -44,7 +44,6 @@ interface SideMenuTaskbarProps {
   onOpenOnboardModal: () => void;
   onOpenUniversalThemeHub?: () => void;
   onOpenMasterColorStudio?: () => void;
-  onOpenMasterLogoStudio?: () => void;
   onOpenGoogleDriveModal?: () => void;
 }
 
@@ -55,7 +54,6 @@ export const SideMenuTaskbar: React.FC<SideMenuTaskbarProps> = ({
   onOpenOnboardModal,
   onOpenUniversalThemeHub,
   onOpenMasterColorStudio,
-  onOpenMasterLogoStudio,
   onOpenGoogleDriveModal,
 }) => {
   const { 
@@ -146,18 +144,6 @@ export const SideMenuTaskbar: React.FC<SideMenuTaskbarProps> = ({
             >
               <Palette className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Color Studio</span>
-            </button>
-          )}
-
-          {/* Quick Real Logo Studio Trigger Button */}
-          {onOpenMasterLogoStudio && (
-            <button
-              onClick={onOpenMasterLogoStudio}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-[#064E3B] hover:bg-[#059669] border border-[#10B981] text-white text-xs font-mono font-bold transition-all cursor-pointer shadow-xs"
-              title="Upload Real Logos from Google Drive / Local Storage & Optimize Sizes"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-[#34D399]" />
-              <span className="hidden sm:inline">Logo Studio</span>
             </button>
           )}
 
@@ -676,23 +662,6 @@ export const SideMenuTaskbar: React.FC<SideMenuTaskbarProps> = ({
                       <div className="flex-1">
                         <div className="text-xs font-mono font-bold">Master Admin Color Studio</div>
                         <div className="text-[10px] text-[#A7F3D0] font-normal">Slidable palettes & custom app profiles</div>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        if (onOpenMasterLogoStudio) onOpenMasterLogoStudio();
-                        setIsSideMenuOpen(false);
-                      }}
-                      className="p-2.5 rounded-xl bg-[#142320] hover:bg-[#1E3A33] border border-[#34D399]/60 text-left text-white flex items-center gap-2 transition-colors cursor-pointer font-bold col-span-2 shadow-xs"
-                    >
-                      <Sparkles className="w-4 h-4 text-[#34D399]" />
-                      <div className="flex-1">
-                        <div className="text-xs font-mono font-bold flex items-center gap-1.5">
-                          <span>Real Logo Studio & Optimizer</span>
-                          <span className="text-[9px] px-1.5 py-0.2 bg-[#064E3B] text-[#34D399] rounded-full">Drive / Local</span>
-                        </div>
-                        <div className="text-[10px] text-[#94A3B8] font-normal">Upload, crop, auto-resize to recommended dimensions</div>
                       </div>
                     </button>
 

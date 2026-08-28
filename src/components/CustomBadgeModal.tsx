@@ -1,8 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
-  Upload, 
-  Image as ImageIcon, 
   Sparkles, 
   Check, 
   Copy, 
@@ -93,13 +91,8 @@ export const CustomBadgeModal: React.FC<CustomBadgeModalProps> = ({
 
   const [activeTab, setActiveTab] = useState<'app-design' | 'protocol-logo' | 'embed' | 'c2pa'>('app-design');
   const [copiedType, setCopiedType] = useState<string | null>(null);
-  const [dragActive, setDragActive] = useState(false);
-  const [protocolDragActive, setProtocolDragActive] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [protocolSaved, setProtocolSaved] = useState(false);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const protocolFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (currentAppName && !config.logoDataUrl && config.appName !== currentAppName) {
@@ -117,45 +110,6 @@ export const CustomBadgeModal: React.FC<CustomBadgeModalProps> = ({
     navigator.clipboard.writeText(text);
     setCopiedType(type);
     setTimeout(() => setCopiedType(null), 3000);
-  };
-
-  // --- App Logo Upload Handlers ---
-  const handleAppLogoUpload = (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      alert('Please upload a valid image file (PNG, JPG, SVG, WebP).');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
-      setConfig(prev => ({
-        ...prev,
-        logoDataUrl: dataUrl,
-        logoVariant: 'custom',
-        updatedAt: new Date().toISOString()
-      }));
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // --- Protocol Logo Upload Handlers ---
-  const handleProtocolLogoUpload = (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      alert('Please upload a valid image file (PNG, JPG, SVG, WebP).');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
-      setProtocolUploadedLogo(dataUrl);
-      localStorage.setItem('human_protocol_official_logo', dataUrl);
-      window.dispatchEvent(new Event('storage'));
-      setProtocolSaved(true);
-      setTimeout(() => setProtocolSaved(false), 2000);
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleSelectProtocolPreset = (preset: string) => {
@@ -467,60 +421,20 @@ export function TrustFooter() {
                   </div>
                 </div>
 
-                {/* 2. Or Upload Custom App Logo Image */}
-                <div className="rounded-xl border border-[#E5E0D8] bg-[#FDFCF9] p-4">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[#5A5A40] mb-2">
-                    B. Or Upload Custom App Logo (For Third-Party Apps)
-                  </label>
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all ${
-                      config.logoDataUrl 
-                        ? 'border-[#5A5A40] bg-[#FAF7F0]' 
-                        : 'border-[#DCD5CA] hover:border-[#5A5A40] bg-white'
-                    }`}
-                  >
-                    <input 
-                      ref={fileInputRef} 
-                      type="file" 
-                      accept="image/*" 
-                      className="hidden" 
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          handleAppLogoUpload(e.target.files[0]);
-                        }
-                      }}
-                    />
-                    <div className="flex flex-col items-center justify-center gap-1.5">
-                      <div className="h-8 w-8 rounded-full bg-[#FAF0EC] flex items-center justify-center text-[#D67D5C]">
-                        <ImageIcon className="w-4 h-4" />
-                      </div>
-                      <p className="text-xs font-semibold text-[#2D2926]">
-                        {config.logoDataUrl ? 'Click to replace custom app logo' : 'Upload custom logo for this specific app'}
-                      </p>
-                      <p className="text-[10px] text-[#6A655C]">
-                        (Changes this app's badge only — preserves the H.U.M.A.N. Protocol logo)
-                      </p>
+                {/* 2. Official App Brand Verification */}
+                <div className="rounded-xl border border-[#E5E0D8] bg-[#FDFCF9] p-3.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-8 w-8 rounded-full bg-[#EBF3ED] flex items-center justify-center text-[#3D6E50]">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-[#2D2926]">Protected Ecosystem Logos</p>
+                      <p className="text-[11px] text-[#6A655C]">Official brand emblems are locked and verified by the master protocol registry.</p>
                     </div>
                   </div>
-
-                  {config.logoDataUrl && (
-                    <div className="mt-2.5 flex items-center justify-between bg-[#FAF7F0] p-2 rounded-lg border border-[#E5E0D8]">
-                      <div className="flex items-center gap-2">
-                        <img src={config.logoDataUrl} alt="App logo" className="h-7 w-7 object-contain rounded border bg-white" />
-                        <span className="text-xs font-medium text-[#2D2926]">Custom App Logo Active</span>
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setConfig(prev => ({ ...prev, logoDataUrl: undefined, logoVariant: 'tome-crafter' }));
-                        }}
-                        className="text-xs text-[#C25438] hover:underline font-mono cursor-pointer"
-                      >
-                        Reset to Preset
-                      </button>
-                    </div>
-                  )}
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#EBF3ED] text-[#3D6E50] border border-[#C5DEC9]">
+                    LOCKED &amp; VERIFIED
+                  </span>
                 </div>
 
                 {/* 3. Text & Covenant Customization */}
@@ -725,12 +639,12 @@ export function TrustFooter() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Option 1: Emerald Cyber Network Vector (User's preferred style) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Option 1: Emerald Cyber Network Vector */}
                 <div 
                   onClick={() => handleSelectProtocolPreset('emerald-cyber')}
                   className={`p-4 rounded-xl border-2 cursor-pointer transition-all text-center flex flex-col items-center justify-between ${
-                    protocolPreset === 'emerald-cyber' && !protocolUploadedLogo
+                    protocolPreset === 'emerald-cyber'
                       ? 'border-[#3D6E50] bg-[#FAF7F0] ring-2 ring-[#3D6E50]/20 shadow-md'
                       : 'border-[#E5E0D8] bg-white hover:border-[#3D6E50]'
                   }`}
@@ -743,11 +657,11 @@ export function TrustFooter() {
                     <p className="text-[11px] text-[#6A655C] mt-0.5">Official Turquoise Neural Constellation</p>
                   </div>
                   <span className={`mt-3 px-3 py-1 rounded-full text-xs font-mono font-bold ${
-                    protocolPreset === 'emerald-cyber' && !protocolUploadedLogo
+                    protocolPreset === 'emerald-cyber'
                       ? 'bg-[#3D6E50] text-white'
                       : 'bg-[#FAF8F5] text-[#5A5A40] border border-[#DCD5CA]'
                   }`}>
-                    {protocolPreset === 'emerald-cyber' && !protocolUploadedLogo ? 'Active Protocol Logo' : 'Select Option'}
+                    {protocolPreset === 'emerald-cyber' ? 'Active Protocol Logo' : 'Select Option'}
                   </span>
                 </div>
 
@@ -755,7 +669,7 @@ export function TrustFooter() {
                 <div 
                   onClick={() => handleSelectProtocolPreset('natural-olive')}
                   className={`p-4 rounded-xl border-2 cursor-pointer transition-all text-center flex flex-col items-center justify-between ${
-                    protocolPreset === 'natural-olive' && !protocolUploadedLogo
+                    protocolPreset === 'natural-olive'
                       ? 'border-[#5A5A40] bg-[#FAF7F0] ring-2 ring-[#5A5A40]/20 shadow-md'
                       : 'border-[#E5E0D8] bg-white hover:border-[#5A5A40]'
                   }`}
@@ -768,57 +682,11 @@ export function TrustFooter() {
                     <p className="text-[11px] text-[#6A655C] mt-0.5">Classic Brand Palette (#5A5A40 / #D67D5C)</p>
                   </div>
                   <span className={`mt-3 px-3 py-1 rounded-full text-xs font-mono font-bold ${
-                    protocolPreset === 'natural-olive' && !protocolUploadedLogo
+                    protocolPreset === 'natural-olive'
                       ? 'bg-[#5A5A40] text-white'
                       : 'bg-[#FAF8F5] text-[#5A5A40] border border-[#DCD5CA]'
                   }`}>
-                    {protocolPreset === 'natural-olive' && !protocolUploadedLogo ? 'Active Protocol Logo' : 'Select Option'}
-                  </span>
-                </div>
-
-                {/* Option 3: Custom Uploaded H.U.M.A.N. Protocol Image */}
-                <div 
-                  onClick={() => protocolFileInputRef.current?.click()}
-                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all text-center flex flex-col items-center justify-between ${
-                    protocolUploadedLogo
-                      ? 'border-[#D67D5C] bg-[#FAF7F0] ring-2 ring-[#D67D5C]/20 shadow-md'
-                      : 'border-dashed border-[#DCD5CA] bg-[#FAF8F5] hover:border-[#D67D5C]'
-                  }`}
-                >
-                  <input 
-                    ref={protocolFileInputRef} 
-                    type="file" 
-                    accept="image/*" 
-                    className="hidden" 
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        handleProtocolLogoUpload(e.target.files[0]);
-                      }
-                    }}
-                  />
-                  <div className="p-2">
-                    {protocolUploadedLogo ? (
-                      <img src={protocolUploadedLogo} alt="Uploaded H.U.M.A.N. logo" className="w-14 h-14 object-contain rounded-xl border bg-white p-1" />
-                    ) : (
-                      <div className="w-14 h-14 rounded-xl bg-[#FAF0EC] flex items-center justify-center text-[#D67D5C] mx-auto">
-                        <Upload className="w-6 h-6" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="mt-3">
-                    <h4 className="font-bold text-sm text-[#2D2926]">
-                      {protocolUploadedLogo ? 'Custom Protocol Image' : 'Upload From Gallery'}
-                    </h4>
-                    <p className="text-[11px] text-[#6A655C] mt-0.5">
-                      Upload your specific H.U.M.A.N. protocol PNG / SVG
-                    </p>
-                  </div>
-                  <span className={`mt-3 px-3 py-1 rounded-full text-xs font-mono font-bold ${
-                    protocolUploadedLogo
-                      ? 'bg-[#D67D5C] text-white'
-                      : 'bg-white text-[#D67D5C] border border-[#EECDBC]'
-                  }`}>
-                    {protocolUploadedLogo ? 'Custom Image Active' : 'Browse File'}
+                    {protocolPreset === 'natural-olive' ? 'Active Protocol Logo' : 'Select Option'}
                   </span>
                 </div>
               </div>

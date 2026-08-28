@@ -28,12 +28,11 @@ import {
 import { useTheme, ThemeMode, CustomColorProfile } from '../context/ThemeContext';
 import { EmeraldHumanNetworkLogoIcon } from './HumanLogo';
 import axios from 'axios';
-import { MasterLogoStudio } from './MasterLogoStudio';
 
 interface MasterAdminColorStudioProps {
   isOpen: boolean;
   onClose: () => void;
-  initialTab?: 'colors' | 'logos' | 'api';
+  initialTab?: 'colors' | 'api';
 }
 
 export const MasterAdminColorStudio: React.FC<MasterAdminColorStudioProps> = ({
@@ -41,7 +40,7 @@ export const MasterAdminColorStudio: React.FC<MasterAdminColorStudioProps> = ({
   onClose,
   initialTab = 'colors'
 }) => {
-  const [activeStudioTab, setActiveStudioTab] = useState<'colors' | 'logos' | 'api'>(initialTab);
+  const [activeStudioTab, setActiveStudioTab] = useState<'colors' | 'api'>(initialTab === 'api' ? 'api' : 'colors');
 
   const { 
     mode, 
@@ -147,7 +146,7 @@ export const MasterAdminColorStudio: React.FC<MasterAdminColorStudioProps> = ({
                 </span>
               </div>
               <p className="text-xs text-[#94A3B8]">
-                Adjust window palettes, upload real logos from Google Drive/local storage with optimizer, and sync ecosystem tokens.
+                Adjust window palettes, custom accent tokens, and sync ecosystem branding across apps.
               </p>
             </div>
           </div>
@@ -177,21 +176,6 @@ export const MasterAdminColorStudio: React.FC<MasterAdminColorStudioProps> = ({
           </button>
 
           <button
-            onClick={() => setActiveStudioTab('logos')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-mono font-bold border-t border-x transition-all cursor-pointer whitespace-nowrap ${
-              activeStudioTab === 'logos'
-                ? 'bg-[#101B18] text-[#34D399] border-[#1E3A33] border-b-transparent shadow-xs'
-                : 'bg-transparent text-[#94A3B8] border-transparent hover:text-[#F0FDF4]'
-            }`}
-          >
-            <Upload className="w-3.5 h-3.5" />
-            <span>2. Real Logo Upload & Optimizer (Drive / Local)</span>
-            <span className="text-[9.5px] font-mono px-1.5 py-0.2 rounded-full bg-[#064E3B] text-[#34D399] border border-[#10B981]/40">
-              NEW
-            </span>
-          </button>
-
-          <button
             onClick={() => setActiveStudioTab('api')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-mono font-bold border-t border-x transition-all cursor-pointer whitespace-nowrap ${
               activeStudioTab === 'api'
@@ -200,7 +184,7 @@ export const MasterAdminColorStudio: React.FC<MasterAdminColorStudioProps> = ({
             }`}
           >
             <Globe className="w-3.5 h-3.5" />
-            <span>3. Ecosystem CSS & API Sync</span>
+            <span>2. Ecosystem CSS & API Sync</span>
           </button>
         </div>
 
@@ -209,13 +193,6 @@ export const MasterAdminColorStudio: React.FC<MasterAdminColorStudioProps> = ({
           <div className="mx-6 mt-4 p-3 rounded-2xl bg-[#064E3B]/60 border border-[#10B981] text-[#34D399] text-xs font-mono flex items-center gap-2 animate-fade-in">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{saveStatus}</span>
-          </div>
-        )}
-
-        {/* TAB 2: REAL LOGO STUDIO & OPTIMIZER */}
-        {activeStudioTab === 'logos' && (
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#0B1311]">
-            <MasterLogoStudio onClose={onClose} />
           </div>
         )}
 

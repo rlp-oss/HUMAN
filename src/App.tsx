@@ -129,7 +129,7 @@ function AppContent() {
   const [isThemeHubModalOpen, setIsThemeHubModalOpen] = useState(false);
   const [isMasterColorStudioOpen, setIsMasterColorStudioOpen] = useState(false);
   const [isGoogleDriveModalOpen, setIsGoogleDriveModalOpen] = useState(false);
-  const [masterStudioInitialTab, setMasterStudioInitialTab] = useState<'colors' | 'logos' | 'api'>('colors');
+  const [masterStudioInitialTab, setMasterStudioInitialTab] = useState<'colors' | 'api'>('colors');
   const [broadcastInitialApp, setBroadcastInitialApp] = useState<AppName | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [isBadgeActive, setIsBadgeActive] = useState<boolean>(() => {
@@ -506,10 +506,6 @@ function AppContent() {
         onOpenUniversalThemeHub={() => setIsThemeHubModalOpen(true)}
         onOpenMasterColorStudio={() => {
           setMasterStudioInitialTab('colors');
-          setIsMasterColorStudioOpen(true);
-        }}
-        onOpenMasterLogoStudio={() => {
-          setMasterStudioInitialTab('logos');
           setIsMasterColorStudioOpen(true);
         }}
         onOpenGoogleDriveModal={() => setIsGoogleDriveModalOpen(true)}

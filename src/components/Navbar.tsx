@@ -389,7 +389,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={onOpenCustomBadgeModal}
               className="hidden md:flex items-center gap-1.5 bg-[#FFFFFF] dark:bg-[#142320] hover:bg-[#FAF8F5] dark:hover:bg-[#1E3A33] text-[#5A5A40] dark:text-[#A7F3D0] border border-[#DCD5CA] dark:border-[#1E3A33] font-semibold text-xs px-2.5 py-1.5 rounded-lg transition-all shadow-2xs cursor-pointer"
-              title="Upload Custom Brand Logo & Configure Official Verification Badge"
+              title="Configure Official Verification Badge & Integrity Seals"
             >
               <Palette className="w-3.5 h-3.5 text-[#059669] dark:text-[#34D399]" />
               <span>Badge</span>
