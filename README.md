@@ -1,4 +1,4 @@
-# The H.U.M.A.N. Protocol: Hardcoding Human Survival into the Internet
+# The H.U.M.A.N. Initiative: Hardcoding Human Survival into the Internet
 ### An Open-Source, Non-Extractive Developer SDK & Civilizational Shield
 **Architect & Founder:** C.W. (Cody) Germain  
 **Official Verification Portal:** [https://human-ethical-ai.ai.studio](https://human-ethical-ai.ai.studio)  
